@@ -58,7 +58,9 @@ columns. `posts.csv` keeps the richer post metadata and rehydration IDs.
 `comments.csv` contains every collected comment; `author_comments.csv` is the
 OP-only subset for fast follow-up. `manifest.json`, `search_pages.json`, and
 `comment_fetch_log.jsonl` explain exactly how the run was made and what Reddit
-returned.
+returned. If a local broad scrape is interrupted, rerun
+`python3 scripts/search_identity_discovery.py --resume`; the script uses
+`run_state.json` and `comment_checkpoints/` to skip work it already finished.
 
 ## Notes
 

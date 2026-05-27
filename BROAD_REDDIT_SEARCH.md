@@ -60,6 +60,16 @@ Run:
 python3 scripts/search_identity_discovery.py
 ```
 
+If the run is stopped during comment collection, continue from the latest
+checkpointed folder with:
+
+```bash
+python3 scripts/search_identity_discovery.py --resume
+```
+
+To resume a specific run, pass its timestamped folder as `--out-dir` with
+`--resume`.
+
 The script creates a timestamped directory under `data/broad_identity_search/`
 with:
 
@@ -78,6 +88,9 @@ with:
 - `comment_fetch_log.jsonl`: per-post comment fetch status and unresolved
   `morechildren` counts.
 - `manifest.json`: parameters, query list, counts, and caveats.
+- `run_state.json`, `search_records.jsonl`, `post_comment_stats.json`, and
+  `comment_checkpoints/`: resume state so completed post/comment fetches are
+  reused rather than collected again.
 
 Important rehydration/provenance columns:
 

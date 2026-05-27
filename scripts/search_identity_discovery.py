@@ -171,6 +171,10 @@ REVIEW_POST_FIELDS = [
     "comment_fetch_error",
 ]
 
+RUN_STATE_FILE = "run_state.json"
+SEARCH_RECORDS_FILE = "search_records.jsonl"
+POST_COMMENT_STATS_FILE = "post_comment_stats.json"
+
 
 def utc_now() -> datetime:
     return datetime.now(timezone.utc)
@@ -679,6 +683,224 @@ def write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
             handle.write("\n")
 
 
+def read_json(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {}
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def write_json(path: Path, payload: dict[str, Any]) -> None:
+    path.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
+
+
+def ensure_csv_header(path: Path, fieldnames: list[str]) -> None:
+    if path.exists() and path.stat().st_size > 0:
+        return
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        csv.DictWriter(handle, fieldnames=fieldnames).writeheader()
+
+
+def read_csv_rows(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    with path.open("r", encoding="utf-8", newline="") as handle:
+        return list(csv.DictReader(handle))
+
+
+def count_csv_rows(path: Path) -> int:
+    if not path.exists():
+        return 0
+    with path.open("r", encoding="utf-8", newline="") as handle:
+        return sum(1 for _ in csv.DictReader(handle))
+
+
+def record_to_json(record: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "raw": record["raw"],
+        "matched_queries": sorted(record.get("matched_queries", [])),
+        "matched_query_groups": sorted(record.get("matched_query_groups", [])),
+        "search_ranks": record.get("search_ranks", []),
+    }
+
+
+def record_from_json(row: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "raw": row["raw"],
+        "matched_queries": set(row.get("matched_queries", [])),
+        "matched_query_groups": set(row.get("matched_query_groups", [])),
+        "search_ranks": row.get("search_ranks", []),
+    }
+
+
+def write_search_records(path: Path, records: list[dict[str, Any]]) -> None:
+    write_jsonl(path, [record_to_json(record) for record in records])
+
+
+def read_search_records(path: Path) -> list[dict[str, Any]]:
+    records = []
+    with path.open("r", encoding="utf-8") as handle:
+        for line in handle:
+            if line.strip():
+                records.append(record_from_json(json.loads(line)))
+    return records
+
+
+def stats_from_logs(logs: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    stats = {}
+    for post_id, log in logs.items():
+        stats[post_id] = {
+            "comments_collected": log.get("collected_comment_count", 0),
+            "author_comments_collected": log.get("author_comment_count", 0),
+        }
+        if log.get("error"):
+            stats[post_id]["comment_fetch_error"] = log["error"]
+    return stats
+
+
+def resolve_resume_dir(out_dir_arg: str) -> Path:
+    path = Path(out_dir_arg)
+    if (path / RUN_STATE_FILE).exists():
+        return path
+
+    if not path.exists():
+        raise FileNotFoundError(f"No such output directory to resume: {path}")
+
+    candidates = [
+        candidate
+        for candidate in path.glob("identity_search_*")
+        if candidate.is_dir() and (candidate / RUN_STATE_FILE).exists()
+    ]
+    if not candidates:
+        raise FileNotFoundError(
+            f"No resumable identity_search_* directory found under {path}"
+        )
+
+    incomplete = []
+    complete = []
+    for candidate in candidates:
+        state = read_json(candidate / RUN_STATE_FILE)
+        if state.get("status") == "complete":
+            complete.append(candidate)
+        else:
+            incomplete.append(candidate)
+    return sorted(incomplete or complete)[-1]
+
+
+def state_value(state: dict[str, Any], key: str, fallback: Any) -> Any:
+    return state[key] if key in state else fallback
+
+
+def checkpoint_paths(chunk_dir: Path, post_id: str) -> dict[str, Path]:
+    return {
+        "comments": chunk_dir / f"{post_id}.comments.csv",
+        "author_comments": chunk_dir / f"{post_id}.author_comments.csv",
+        "log": chunk_dir / f"{post_id}.log.json",
+    }
+
+
+def atomic_write_csv(
+    path: Path,
+    fieldnames: list[str],
+    rows: list[dict[str, Any]],
+) -> None:
+    tmp_path = path.with_suffix(f"{path.suffix}.tmp")
+    write_csv(tmp_path, fieldnames, rows)
+    tmp_path.replace(path)
+
+
+def atomic_write_json(path: Path, payload: dict[str, Any]) -> None:
+    tmp_path = path.with_suffix(f"{path.suffix}.tmp")
+    write_json(tmp_path, payload)
+    tmp_path.replace(path)
+
+
+def write_post_checkpoint(
+    chunk_dir: Path,
+    post_id: str,
+    comments: list[dict[str, Any]],
+    author_comments: list[dict[str, Any]],
+    log: dict[str, Any],
+) -> None:
+    paths = checkpoint_paths(chunk_dir, post_id)
+    atomic_write_csv(paths["comments"], COMMENT_FIELDS, comments)
+    atomic_write_csv(paths["author_comments"], COMMENT_FIELDS, author_comments)
+    atomic_write_json(paths["log"], log)
+
+
+def read_checkpoint_logs(chunk_dir: Path) -> dict[str, dict[str, Any]]:
+    logs = {}
+    if not chunk_dir.exists():
+        return logs
+    for log_path in sorted(chunk_dir.glob("*.log.json")):
+        log = read_json(log_path)
+        post_id = str(log.get("post_id", ""))
+        if post_id:
+            logs[post_id] = log
+    return logs
+
+
+def copy_csv_body(source_path: Path, writer: csv.DictWriter) -> int:
+    if not source_path.exists():
+        return 0
+    copied = 0
+    with source_path.open("r", encoding="utf-8", newline="") as handle:
+        for row in csv.DictReader(handle):
+            writer.writerow(row)
+            copied += 1
+    return copied
+
+
+def merge_comment_checkpoints(
+    records: list[dict[str, Any]],
+    chunk_dir: Path,
+    comments_path: Path,
+    author_comments_path: Path,
+    log_path: Path,
+) -> tuple[int, int, list[dict[str, Any]]]:
+    comment_count = 0
+    author_comment_count = 0
+    logs = []
+
+    with comments_path.open("w", encoding="utf-8", newline="") as comments_handle:
+        writer = csv.DictWriter(comments_handle, fieldnames=COMMENT_FIELDS)
+        writer.writeheader()
+        for record in records:
+            post_id = record["raw"].get("data", {}).get("id", "")
+            if not post_id:
+                continue
+            paths = checkpoint_paths(chunk_dir, post_id)
+            comment_count += copy_csv_body(paths["comments"], writer)
+
+    with author_comments_path.open(
+        "w", encoding="utf-8", newline=""
+    ) as author_handle:
+        writer = csv.DictWriter(author_handle, fieldnames=COMMENT_FIELDS)
+        writer.writeheader()
+        for record in records:
+            post_id = record["raw"].get("data", {}).get("id", "")
+            if not post_id:
+                continue
+            paths = checkpoint_paths(chunk_dir, post_id)
+            author_comment_count += copy_csv_body(paths["author_comments"], writer)
+
+    with log_path.open("w", encoding="utf-8") as handle:
+        for record in records:
+            post_id = record["raw"].get("data", {}).get("id", "")
+            if not post_id:
+                continue
+            log_file = checkpoint_paths(chunk_dir, post_id)["log"]
+            if not log_file.exists():
+                continue
+            log = read_json(log_file)
+            logs.append(log)
+            handle.write(json.dumps(log, ensure_ascii=False, sort_keys=True))
+            handle.write("\n")
+
+    return comment_count, author_comment_count, logs
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out-dir", default="data/broad_identity_search")
@@ -691,6 +913,19 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--more-batch-size", type=int, default=100)
     parser.add_argument("--skip-comments", action="store_true")
     parser.add_argument("--skip-morechildren", action="store_true")
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help=(
+            "Resume the latest run_state.json under --out-dir, or resume "
+            "--out-dir directly when it is a timestamped run directory."
+        ),
+    )
+    parser.add_argument(
+        "--retry-errors",
+        action="store_true",
+        help="When resuming, retry posts whose previous comment fetch logged an error.",
+    )
     parser.add_argument("--user-agent", default=DEFAULT_USER_AGENT)
     parser.add_argument(
         "--query",
@@ -708,78 +943,187 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    started_at = utc_now()
-    retrieved_at_utc = started_at.isoformat()
-    snapshot = started_at.strftime("identity_search_%Y%m%dT%H%M%SZ")
-    out_dir = Path(args.out_dir) / snapshot
-    out_dir.mkdir(parents=True, exist_ok=True)
+    now = utc_now()
 
-    query_specs = unique_query_specs(
-        args.query,
-        include_defaults=not args.no_default_queries,
-    )
+    if args.resume:
+        try:
+            out_dir = resolve_resume_dir(args.out_dir)
+        except FileNotFoundError as error:
+            print(str(error), file=sys.stderr)
+            return 2
+        state = read_json(out_dir / RUN_STATE_FILE)
+        started_at_utc = state.get("started_at_utc", now.isoformat())
+        retrieved_at_utc = state.get("retrieved_at_utc", started_at_utc)
+        query_specs = state.get("query_specs") or unique_query_specs(
+            args.query,
+            include_defaults=not args.no_default_queries,
+        )
+        sort = state_value(state, "sort", args.sort)
+        time_filter = state_value(state, "time_filter", args.time_filter)
+        max_pages_per_query = int(
+            state_value(state, "max_pages_per_query", args.max_pages_per_query)
+        )
+        max_posts = int(state_value(state, "max_posts", args.max_posts))
+        skip_comments = bool(state_value(state, "skip_comments", args.skip_comments))
+        skip_morechildren = bool(
+            state_value(state, "skip_morechildren", args.skip_morechildren)
+        )
+        more_batch_size = int(state_value(state, "more_batch_size", args.more_batch_size))
+        print(f"Resuming {out_dir}", file=sys.stderr, flush=True)
+    else:
+        started_at_utc = now.isoformat()
+        retrieved_at_utc = started_at_utc
+        snapshot = now.strftime("identity_search_%Y%m%dT%H%M%SZ")
+        out_dir = Path(args.out_dir) / snapshot
+        out_dir.mkdir(parents=True, exist_ok=True)
+        query_specs = unique_query_specs(
+            args.query,
+            include_defaults=not args.no_default_queries,
+        )
+        sort = args.sort
+        time_filter = args.time_filter
+        max_pages_per_query = args.max_pages_per_query
+        max_posts = args.max_posts
+        skip_comments = args.skip_comments
+        skip_morechildren = args.skip_morechildren
+        more_batch_size = args.more_batch_size
+
     if not query_specs:
         print("No queries to run. Remove --no-default-queries or pass --query.", file=sys.stderr)
         return 2
-    posts_by_id, search_pages = search_posts(
-        query_specs=query_specs,
-        user_agent=args.user_agent,
-        sort=args.sort,
-        time_filter=args.time_filter,
-        max_pages_per_query=args.max_pages_per_query,
-        delay_seconds=args.search_delay_seconds,
+
+    state_payload = {
+        "schema_version": "2",
+        "status": "searching",
+        "started_at_utc": started_at_utc,
+        "retrieved_at_utc": retrieved_at_utc,
+        "last_updated_at_utc": utc_now().isoformat(),
+        "query_specs": query_specs,
+        "sort": sort,
+        "time_filter": time_filter,
+        "max_pages_per_query": max_pages_per_query,
+        "max_posts": max_posts,
+        "skip_comments": skip_comments,
+        "skip_morechildren": skip_morechildren,
+        "more_batch_size": more_batch_size,
+    }
+    write_json(out_dir / RUN_STATE_FILE, state_payload)
+
+    search_records_path = out_dir / SEARCH_RECORDS_FILE
+    search_pages_path = out_dir / "search_pages.json"
+    if args.resume and search_records_path.exists():
+        records = read_search_records(search_records_path)
+        search_pages = (
+            json.loads(search_pages_path.read_text(encoding="utf-8"))
+            if search_pages_path.exists()
+            else []
+        )
+        print(
+            f"Loaded {len(records)} saved search records",
+            file=sys.stderr,
+            flush=True,
+        )
+    else:
+        posts_by_id, search_pages = search_posts(
+            query_specs=query_specs,
+            user_agent=args.user_agent,
+            sort=sort,
+            time_filter=time_filter,
+            max_pages_per_query=max_pages_per_query,
+            delay_seconds=args.search_delay_seconds,
+        )
+
+        records = sorted(
+            posts_by_id.values(),
+            key=lambda record: record["raw"].get("data", {}).get("created_utc") or 0,
+            reverse=True,
+        )
+        if max_posts > 0:
+            records = records[:max_posts]
+        write_search_records(search_records_path, records)
+        search_pages_path.write_text(
+            json.dumps(search_pages, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
+
+    chunk_dir = out_dir / "comment_checkpoints"
+    chunk_dir.mkdir(exist_ok=True)
+    comments_path = out_dir / "comments.csv"
+    author_comments_path = out_dir / "author_comments.csv"
+    log_path = out_dir / "comment_fetch_log.jsonl"
+    stats_path = out_dir / POST_COMMENT_STATS_FILE
+    checkpoint_logs = read_checkpoint_logs(chunk_dir)
+    post_comment_stats: dict[str, dict[str, Any]] = read_json(stats_path)
+    if not post_comment_stats:
+        post_comment_stats = stats_from_logs(checkpoint_logs)
+
+    record_post_ids = [
+        record["raw"].get("data", {}).get("id", "")
+        for record in records
+        if record["raw"].get("data", {}).get("id")
+    ]
+    completed_post_count = sum(1 for post_id in record_post_ids if post_id in checkpoint_logs)
+    state_payload.update(
+        {
+            "status": "collecting_comments" if not skip_comments else "finalizing",
+            "post_count_planned": len(record_post_ids),
+            "completed_post_count": completed_post_count,
+            "last_updated_at_utc": utc_now().isoformat(),
+        }
     )
+    write_json(out_dir / RUN_STATE_FILE, state_payload)
 
-    records = sorted(
-        posts_by_id.values(),
-        key=lambda record: record["raw"].get("data", {}).get("created_utc") or 0,
-        reverse=True,
-    )
-    if args.max_posts > 0:
-        records = records[: args.max_posts]
-
-    comment_rows: list[dict[str, Any]] = []
-    author_comment_rows: list[dict[str, Any]] = []
-    comment_logs: list[dict[str, Any]] = []
-    post_comment_stats: dict[str, dict[str, Any]] = {}
-
-    if not args.skip_comments:
+    if not skip_comments:
         for index, record in enumerate(records, start=1):
             post_data = record["raw"].get("data", {})
             post_id = post_data.get("id")
             if not post_id:
                 continue
+            previous_log = checkpoint_logs.get(post_id)
+            if previous_log and (not previous_log.get("error") or not args.retry_errors):
+                print(
+                    f"[{index}/{len(records)}] {post_id}: "
+                    f"{previous_log.get('collected_comment_count', 0)} comments "
+                    "(checkpoint)",
+                    file=sys.stderr,
+                    flush=True,
+                )
+                continue
+
             try:
                 raw_comments, comment_log = collect_comments(
                     post_id=post_id,
                     user_agent=args.user_agent,
                     delay_seconds=args.comment_delay_seconds,
-                    more_batch_size=args.more_batch_size,
-                    expand_morechildren=not args.skip_morechildren,
+                    more_batch_size=more_batch_size,
+                    expand_morechildren=not skip_morechildren,
                 )
                 normalized_comments = [
                     normalize_comment(
                         child,
                         record,
                         retrieved_at_utc=retrieved_at_utc,
-                        search_sort=args.sort,
-                        search_time_filter=args.time_filter,
+                        search_sort=sort,
+                        search_time_filter=time_filter,
                     )
                     for child in raw_comments
                 ]
                 author_comments = [
                     row for row in normalized_comments if row["is_author_comment"]
                 ]
-                comment_rows.extend(normalized_comments)
-                author_comment_rows.extend(author_comments)
                 post_comment_stats[post_id] = {
                     "comments_collected": len(normalized_comments),
                     "author_comments_collected": len(author_comments),
                 }
+                comment_log["status"] = "success"
+                comment_log["author_comment_count"] = len(author_comments)
             except Exception as error:  # noqa: BLE001 - logged for collection audit.
+                normalized_comments = []
+                author_comments = []
                 comment_log = {
                     "post_id": post_id,
                     "collected_comment_count": 0,
+                    "author_comment_count": 0,
+                    "status": "error",
                     "error": repr(error),
                 }
                 post_comment_stats[post_id] = {
@@ -790,13 +1134,48 @@ def main() -> int:
 
             comment_log["post_index"] = index
             comment_log["post_total"] = len(records)
-            comment_logs.append(comment_log)
+            write_post_checkpoint(
+                chunk_dir,
+                post_id,
+                normalized_comments,
+                author_comments,
+                comment_log,
+            )
+            checkpoint_logs[post_id] = comment_log
+            write_json(stats_path, post_comment_stats)
+            state_payload.update(
+                {
+                    "completed_post_count": sum(
+                        1 for candidate in record_post_ids if candidate in checkpoint_logs
+                    ),
+                    "last_updated_at_utc": utc_now().isoformat(),
+                }
+            )
+            write_json(out_dir / RUN_STATE_FILE, state_payload)
             print(
                 f"[{index}/{len(records)}] {post_id}: "
                 f"{comment_log.get('collected_comment_count', 0)} comments",
                 file=sys.stderr,
                 flush=True,
             )
+    else:
+        ensure_csv_header(comments_path, COMMENT_FIELDS)
+        ensure_csv_header(author_comments_path, COMMENT_FIELDS)
+        log_path.write_text("", encoding="utf-8")
+        write_json(stats_path, post_comment_stats)
+
+    if not skip_comments:
+        comment_count, author_comment_count, comment_logs = merge_comment_checkpoints(
+            records,
+            chunk_dir,
+            comments_path,
+            author_comments_path,
+            log_path,
+        )
+    else:
+        comment_count = count_csv_rows(comments_path)
+        author_comment_count = count_csv_rows(author_comments_path)
+        comment_logs = []
 
     post_rows = [
         normalize_post(
@@ -806,39 +1185,35 @@ def main() -> int:
                 {},
             ),
             retrieved_at_utc=retrieved_at_utc,
-            search_sort=args.sort,
-            search_time_filter=args.time_filter,
+            search_sort=sort,
+            search_time_filter=time_filter,
         )
         for record in records
     ]
 
     write_csv(out_dir / "posts.csv", POST_FIELDS, post_rows)
+    author_comment_rows = read_csv_rows(author_comments_path)
     review_rows = [
         normalize_review_post(post_row, author_comment_rows)
         for post_row in post_rows
     ]
     write_csv(out_dir / "review_posts.csv", REVIEW_POST_FIELDS, review_rows)
-    write_csv(out_dir / "comments.csv", COMMENT_FIELDS, comment_rows)
-    write_csv(out_dir / "author_comments.csv", COMMENT_FIELDS, author_comment_rows)
-    (out_dir / "search_pages.json").write_text(
-        json.dumps(search_pages, indent=2, ensure_ascii=False), encoding="utf-8"
-    )
-    write_jsonl(out_dir / "comment_fetch_log.jsonl", comment_logs)
 
     manifest = {
         "schema_version": "2",
-        "started_at_utc": started_at.isoformat(),
+        "started_at_utc": started_at_utc,
         "retrieved_at_utc": retrieved_at_utc,
         "finished_at_utc": utc_now().isoformat(),
         "source": "Reddit public search and comments JSON endpoints",
+        "resumed": args.resume,
         "query_specs": query_specs,
-        "sort": args.sort,
-        "time_filter": args.time_filter,
-        "max_pages_per_query": args.max_pages_per_query,
-        "max_posts": args.max_posts,
+        "sort": sort,
+        "time_filter": time_filter,
+        "max_pages_per_query": max_pages_per_query,
+        "max_posts": max_posts,
         "post_count": len(post_rows),
-        "comment_count": len(comment_rows),
-        "author_comment_count": len(author_comment_rows),
+        "comment_count": comment_count,
+        "author_comment_count": author_comment_count,
         "comment_fetch_error_count": sum(1 for log in comment_logs if "error" in log),
         "outputs": {
             "review_posts": "review_posts.csv",
@@ -847,6 +1222,10 @@ def main() -> int:
             "author_comments": "author_comments.csv",
             "search_pages": "search_pages.json",
             "comment_fetch_log": "comment_fetch_log.jsonl",
+            "run_state": RUN_STATE_FILE,
+            "search_records": SEARCH_RECORDS_FILE,
+            "post_comment_stats": POST_COMMENT_STATS_FILE,
+            "comment_checkpoints": "comment_checkpoints/",
         },
         "schemas": {
             "review_posts": REVIEW_POST_FIELDS,
@@ -855,6 +1234,7 @@ def main() -> int:
             "author_comments": COMMENT_FIELDS,
         },
         "notes": [
+            "Use --resume to continue a stopped run from run_state.json and per-post comment checkpoints.",
             "review_posts.csv is optimized for manual review in Google Sheets; long text is single-line and truncated.",
             "Reddit search is not guaranteed to be exhaustive or stable over time.",
             "Queries are exact phrase searches; Reddit wildcard-style phrases are expanded explicitly.",
@@ -862,9 +1242,16 @@ def main() -> int:
             "author_comments.csv contains comments where Reddit marked is_submitter or the comment author matches the post author.",
         ],
     }
-    (out_dir / "manifest.json").write_text(
-        json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8"
+    write_json(out_dir / "manifest.json", manifest)
+    state_payload.update(
+        {
+            "status": "complete",
+            "completed_post_count": len(record_post_ids),
+            "last_updated_at_utc": utc_now().isoformat(),
+            "manifest": "manifest.json",
+        }
     )
+    write_json(out_dir / RUN_STATE_FILE, state_payload)
 
     print(json.dumps({"out_dir": str(out_dir), **manifest}, indent=2))
     return 0
