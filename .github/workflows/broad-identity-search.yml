@@ -62,8 +62,16 @@ jobs:
       - name: Run broad identity search
         id: run_search
         shell: bash
+        env:
+          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
+          REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
         run: |
           set -euo pipefail
+
+          if [[ -z "${REDDIT_CLIENT_ID:-}" || -z "${REDDIT_CLIENT_SECRET:-}" ]]; then
+            echo "::error title=Missing Reddit API secrets::Reddit blocks unauthenticated JSON requests from GitHub-hosted runners. Add repository secrets REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET, then rerun this workflow."
+            exit 1
+          fi
 
           args=(
             --out-dir data/broad_identity_search

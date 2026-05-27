@@ -4,8 +4,10 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import csv
 import json
+import os
 import sys
 import time
 from collections import deque
@@ -18,6 +20,7 @@ from urllib.request import Request, urlopen
 
 
 REDDIT_BASE = "https://www.reddit.com"
+REDDIT_OAUTH_BASE = "https://oauth.reddit.com"
 DEFAULT_USER_AGENT = (
     "reddit-foundthepost-content-analysis/0.1 "
     "(broad public Reddit identity-discovery search; contact: local research script)"
@@ -182,28 +185,112 @@ def to_iso(timestamp: float | int | str | None) -> str:
     return datetime.fromtimestamp(float(timestamp), timezone.utc).isoformat()
 
 
-def request_json(url: str, user_agent: str, retries: int = 6) -> Any:
-    request = Request(url, headers={"User-Agent": user_agent})
-    for attempt in range(retries + 1):
+class RedditClient:
+    def __init__(
+        self,
+        user_agent: str,
+        client_id: str = "",
+        client_secret: str = "",
+    ) -> None:
+        self.user_agent = user_agent
+        self.client_id = client_id
+        self.client_secret = client_secret
+        self.access_token = ""
+        self.token_expires_at = 0.0
+
+    @property
+    def uses_oauth(self) -> bool:
+        return bool(self.client_id and self.client_secret)
+
+    @property
+    def auth_mode(self) -> str:
+        if self.uses_oauth:
+            return "oauth_client_credentials"
+        return "unauthenticated_www_json"
+
+    def api_url(self, path: str, params: dict[str, str]) -> str:
+        clean_path = path if path.startswith("/") else f"/{path}"
+        if self.uses_oauth:
+            return f"{REDDIT_OAUTH_BASE}{clean_path}?{urlencode(params)}"
+        return f"{REDDIT_BASE}{clean_path}.json?{urlencode(params)}"
+
+    def headers(self) -> dict[str, str]:
+        headers = {"User-Agent": self.user_agent}
+        if self.uses_oauth:
+            headers["Authorization"] = f"bearer {self.oauth_token()}"
+        return headers
+
+    def oauth_token(self) -> str:
+        if self.access_token and time.monotonic() < self.token_expires_at:
+            return self.access_token
+
+        credentials = f"{self.client_id}:{self.client_secret}".encode("utf-8")
+        basic_auth = base64.b64encode(credentials).decode("ascii")
+        body = urlencode({"grant_type": "client_credentials"}).encode("ascii")
+        request = Request(
+            f"{REDDIT_BASE}/api/v1/access_token",
+            data=body,
+            method="POST",
+            headers={
+                "Authorization": f"Basic {basic_auth}",
+                "Content-Type": "application/x-www-form-urlencoded",
+                "User-Agent": self.user_agent,
+            },
+        )
         try:
             with urlopen(request, timeout=45) as response:
-                return json.loads(response.read().decode("utf-8"))
+                payload = json.loads(response.read().decode("utf-8"))
         except HTTPError as error:
-            if error.code == 429 and attempt < retries:
-                retry_after = error.headers.get("Retry-After")
-                delay = int(retry_after) if retry_after and retry_after.isdigit() else 60
-                time.sleep(delay)
-                continue
-            if 500 <= error.code < 600 and attempt < retries:
-                time.sleep(2**attempt)
-                continue
-            raise
-        except (TimeoutError, URLError):
-            if attempt < retries:
-                time.sleep(2**attempt)
-                continue
-            raise
-    raise RuntimeError(f"failed to fetch {url}")
+            detail = error.read().decode("utf-8", errors="replace")
+            raise RuntimeError(
+                f"failed to authenticate with Reddit OAuth "
+                f"(HTTP {error.code}): {detail}"
+            ) from error
+
+        token = payload.get("access_token")
+        if not token:
+            raise RuntimeError("Reddit OAuth response did not include access_token")
+        expires_in = int(payload.get("expires_in") or 3600)
+        self.access_token = token
+        self.token_expires_at = time.monotonic() + max(60, expires_in - 60)
+        return self.access_token
+
+    def request_json(self, url: str, retries: int = 6) -> Any:
+        for attempt in range(retries + 1):
+            request = Request(url, headers=self.headers())
+            try:
+                with urlopen(request, timeout=45) as response:
+                    return json.loads(response.read().decode("utf-8"))
+            except HTTPError as error:
+                if self.uses_oauth and error.code == 401 and attempt < retries:
+                    self.access_token = ""
+                    self.token_expires_at = 0
+                    continue
+                if error.code == 403 and not self.uses_oauth:
+                    raise RuntimeError(
+                        "Reddit returned HTTP 403 Blocked. GitHub-hosted runners "
+                        "often need Reddit OAuth; set REDDIT_CLIENT_ID and "
+                        "REDDIT_CLIENT_SECRET secrets for the workflow."
+                    ) from error
+                if error.code == 429 and attempt < retries:
+                    retry_after = error.headers.get("Retry-After")
+                    delay = (
+                        int(retry_after)
+                        if retry_after and retry_after.isdigit()
+                        else 60
+                    )
+                    time.sleep(delay)
+                    continue
+                if 500 <= error.code < 600 and attempt < retries:
+                    time.sleep(2**attempt)
+                    continue
+                raise
+            except (TimeoutError, URLError):
+                if attempt < retries:
+                    time.sleep(2**attempt)
+                    continue
+                raise
+        raise RuntimeError(f"failed to fetch {url}")
 
 
 def full_reddit_url(url_or_path: str) -> str:
@@ -261,7 +348,7 @@ def estimate_votes(score: Any, upvote_ratio: Any) -> tuple[str, str]:
 
 def search_posts(
     query_specs: list[dict[str, str]],
-    user_agent: str,
+    client: RedditClient,
     sort: str,
     time_filter: str,
     max_pages_per_query: int,
@@ -288,8 +375,8 @@ def search_posts(
             }
             if after:
                 params["after"] = after
-            url = f"{REDDIT_BASE}/search.json?{urlencode(params)}"
-            payload = request_json(url, user_agent)
+            url = client.api_url("/search", params)
+            payload = client.request_json(url)
             listing = payload.get("data", {})
             children = listing.get("children", [])
 
@@ -375,7 +462,7 @@ def iter_comment_nodes(
 def fetch_morechildren(
     post_id: str,
     child_ids: list[str],
-    user_agent: str,
+    client: RedditClient,
 ) -> list[dict[str, Any]]:
     params = {
         "api_type": "json",
@@ -383,21 +470,21 @@ def fetch_morechildren(
         "children": ",".join(child_ids),
         "raw_json": "1",
     }
-    url = f"{REDDIT_BASE}/api/morechildren.json?{urlencode(params)}"
-    payload = request_json(url, user_agent)
+    url = client.api_url("/api/morechildren", params)
+    payload = client.request_json(url)
     return payload.get("json", {}).get("data", {}).get("things", [])
 
 
 def collect_comments(
     post_id: str,
-    user_agent: str,
+    client: RedditClient,
     delay_seconds: float,
     more_batch_size: int,
     expand_morechildren: bool,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     params = {"limit": "500", "depth": "10", "raw_json": "1"}
-    url = f"{REDDIT_BASE}/comments/{post_id}.json?{urlencode(params)}"
-    payload = request_json(url, user_agent)
+    url = client.api_url(f"/comments/{post_id}", params)
+    payload = client.request_json(url)
     time.sleep(delay_seconds)
 
     if not isinstance(payload, list) or len(payload) < 2:
@@ -432,7 +519,7 @@ def collect_comments(
             attempted_more_ids.update(batch)
             nested_more_ids: set[str] = set()
             for child in iter_comment_nodes(
-                fetch_morechildren(post_id, batch, user_agent),
+                fetch_morechildren(post_id, batch, client),
                 nested_more_ids,
             ):
                 comment_id = child.get("data", {}).get("id")
@@ -693,6 +780,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--skip-morechildren", action="store_true")
     parser.add_argument("--user-agent", default=DEFAULT_USER_AGENT)
     parser.add_argument(
+        "--reddit-client-id",
+        default=os.environ.get("REDDIT_CLIENT_ID", ""),
+        help="Reddit OAuth client ID. Defaults to REDDIT_CLIENT_ID.",
+    )
+    parser.add_argument(
+        "--reddit-client-secret",
+        default=os.environ.get("REDDIT_CLIENT_SECRET", ""),
+        help="Reddit OAuth client secret. Defaults to REDDIT_CLIENT_SECRET.",
+    )
+    parser.add_argument(
         "--query",
         action="append",
         default=[],
@@ -708,11 +805,24 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
+    if bool(args.reddit_client_id) != bool(args.reddit_client_secret):
+        print(
+            "Both --reddit-client-id and --reddit-client-secret are required "
+            "to use Reddit OAuth.",
+            file=sys.stderr,
+        )
+        return 2
+
     started_at = utc_now()
     retrieved_at_utc = started_at.isoformat()
     snapshot = started_at.strftime("identity_search_%Y%m%dT%H%M%SZ")
     out_dir = Path(args.out_dir) / snapshot
     out_dir.mkdir(parents=True, exist_ok=True)
+    client = RedditClient(
+        user_agent=args.user_agent,
+        client_id=args.reddit_client_id,
+        client_secret=args.reddit_client_secret,
+    )
 
     query_specs = unique_query_specs(
         args.query,
@@ -723,7 +833,7 @@ def main() -> int:
         return 2
     posts_by_id, search_pages = search_posts(
         query_specs=query_specs,
-        user_agent=args.user_agent,
+        client=client,
         sort=args.sort,
         time_filter=args.time_filter,
         max_pages_per_query=args.max_pages_per_query,
@@ -752,7 +862,7 @@ def main() -> int:
             try:
                 raw_comments, comment_log = collect_comments(
                     post_id=post_id,
-                    user_agent=args.user_agent,
+                    client=client,
                     delay_seconds=args.comment_delay_seconds,
                     more_batch_size=args.more_batch_size,
                     expand_morechildren=not args.skip_morechildren,
@@ -831,6 +941,7 @@ def main() -> int:
         "retrieved_at_utc": retrieved_at_utc,
         "finished_at_utc": utc_now().isoformat(),
         "source": "Reddit public search and comments JSON endpoints",
+        "auth_mode": client.auth_mode,
         "query_specs": query_specs,
         "sort": args.sort,
         "time_filter": args.time_filter,
