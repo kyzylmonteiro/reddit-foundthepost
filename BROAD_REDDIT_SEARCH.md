@@ -65,16 +65,29 @@ with:
 
 - `posts.csv`: one row per deduplicated post, including timestamp, subreddit,
   post/author flair fields, score, upvote ratio, estimated up/downvotes, link,
-  matched queries, and comment collection counts.
+  durable Reddit IDs, matched queries, search-rank provenance, and comment
+  collection counts.
 - `comments.csv`: one row per collected comment, including timestamp, author,
-  body, score, parent ID, permalink, and whether the comment was written by the
-  post author.
+  body, score, Reddit comment/link/parent IDs, permalink, search provenance,
+  and whether the comment was written by the post author.
 - `author_comments.csv`: filtered subset of `comments.csv` where the comment
   author is the original post author.
 - `search_pages.json`: per-query Reddit search pagination metadata.
 - `comment_fetch_log.jsonl`: per-post comment fetch status and unresolved
   `morechildren` counts.
 - `manifest.json`: parameters, query list, counts, and caveats.
+
+Important rehydration/provenance columns:
+
+- Post IDs: `post_id`, `fullname`, `reddit_kind`, `subreddit_id`,
+  `subreddit_name_prefixed`, `author_fullname`, `permalink`.
+- Comment IDs: `comment_id`, `comment_fullname`, `link_id`, `parent_id`,
+  `post_id`, `post_fullname`, `author_fullname`, `permalink`.
+- Collection provenance: `retrieved_at_utc`, `search_sort`,
+  `search_time_filter`, `matched_queries`, `matched_query_groups`,
+  `search_rank_min`, `search_rank_all`.
+- `search_rank_all` is JSON listing every query that surfaced the post and its
+  rank within that query's result pages.
 
 ## Recommended First Run
 

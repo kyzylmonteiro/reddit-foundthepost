@@ -63,7 +63,17 @@ DEFAULT_QUERY_GROUPS = [
 
 POST_FIELDS = [
     "id",
+    "post_id",
     "fullname",
+    "reddit_kind",
+    "subreddit_id",
+    "subreddit_name_prefixed",
+    "author_fullname",
+    "retrieved_at_utc",
+    "search_sort",
+    "search_time_filter",
+    "search_rank_min",
+    "search_rank_all",
     "matched_query_groups",
     "matched_queries",
     "subreddit",
@@ -100,6 +110,16 @@ POST_FIELDS = [
 COMMENT_FIELDS = [
     "post_id",
     "post_fullname",
+    "post_reddit_kind",
+    "post_permalink",
+    "subreddit_id",
+    "subreddit_name_prefixed",
+    "author_fullname",
+    "retrieved_at_utc",
+    "search_sort",
+    "search_time_filter",
+    "post_search_rank_min",
+    "post_search_rank_all",
     "matched_query_groups",
     "matched_queries",
     "subreddit",
@@ -263,7 +283,7 @@ def search_posts(
                 }
             )
 
-            for child in children:
+            for child_index, child in enumerate(children, start=1):
                 data = child.get("data", {})
                 post_id = data.get("id")
                 if not post_id:
@@ -274,10 +294,20 @@ def search_posts(
                         "raw": child,
                         "matched_queries": set(),
                         "matched_query_groups": set(),
+                        "search_ranks": [],
                     },
                 )
                 record["matched_queries"].add(query)
                 record["matched_query_groups"].add(query_spec["group"])
+                record["search_ranks"].append(
+                    {
+                        "query_group": query_spec["group"],
+                        "query": query,
+                        "rank": ((page_number - 1) * 100) + child_index,
+                        "page_number": page_number,
+                        "page_rank": child_index,
+                    }
+                )
 
             after = listing.get("after")
             if not after or not children:
@@ -406,7 +436,30 @@ def collect_comments(
     return raw_comments, log
 
 
-def normalize_post(record: dict[str, Any], comment_stats: dict[str, Any]) -> dict[str, Any]:
+def search_rank_min(record: dict[str, Any]) -> str:
+    ranks = [rank["rank"] for rank in record.get("search_ranks", []) if rank.get("rank")]
+    return str(min(ranks)) if ranks else ""
+
+
+def search_rank_all_json(record: dict[str, Any]) -> str:
+    return json.dumps(
+        record.get("search_ranks", []),
+        ensure_ascii=False,
+        sort_keys=True,
+    )
+
+
+def reddit_kind(fullname: str) -> str:
+    return fullname.split("_", 1)[0] if "_" in fullname else ""
+
+
+def normalize_post(
+    record: dict[str, Any],
+    comment_stats: dict[str, Any],
+    retrieved_at_utc: str,
+    search_sort: str,
+    search_time_filter: str,
+) -> dict[str, Any]:
     data = record["raw"].get("data", {})
     title = data.get("title") or ""
     selftext = data.get("selftext") or ""
@@ -415,9 +468,20 @@ def normalize_post(record: dict[str, Any], comment_stats: dict[str, Any]) -> dic
         data.get("upvote_ratio"),
     )
     permalink = data.get("permalink") or ""
+    fullname = data.get("name") or ""
     return {
         "id": data.get("id") or "",
-        "fullname": data.get("name") or "",
+        "post_id": data.get("id") or "",
+        "fullname": fullname,
+        "reddit_kind": reddit_kind(fullname),
+        "subreddit_id": data.get("subreddit_id") or "",
+        "subreddit_name_prefixed": data.get("subreddit_name_prefixed") or "",
+        "author_fullname": data.get("author_fullname") or "",
+        "retrieved_at_utc": retrieved_at_utc,
+        "search_sort": search_sort,
+        "search_time_filter": search_time_filter,
+        "search_rank_min": search_rank_min(record),
+        "search_rank_all": search_rank_all_json(record),
         "matched_query_groups": ";".join(sorted(record["matched_query_groups"])),
         "matched_queries": ";".join(sorted(record["matched_queries"])),
         "subreddit": data.get("subreddit") or "",
@@ -456,18 +520,40 @@ def normalize_post(record: dict[str, Any], comment_stats: dict[str, Any]) -> dic
     }
 
 
-def normalize_comment(child: dict[str, Any], record: dict[str, Any]) -> dict[str, Any]:
+def normalize_comment(
+    child: dict[str, Any],
+    record: dict[str, Any],
+    retrieved_at_utc: str,
+    search_sort: str,
+    search_time_filter: str,
+) -> dict[str, Any]:
     data = child.get("data", {})
     post_data = record["raw"].get("data", {})
     post_author = post_data.get("author") or ""
     author = data.get("author") or ""
     permalink = data.get("permalink") or ""
+    post_permalink = post_data.get("permalink") or ""
+    post_fullname = post_data.get("name") or ""
     is_author_comment = bool(data.get("is_submitter")) or (
         bool(author) and author == post_author
     )
     return {
         "post_id": post_data.get("id") or "",
-        "post_fullname": post_data.get("name") or "",
+        "post_fullname": post_fullname,
+        "post_reddit_kind": reddit_kind(post_fullname),
+        "post_permalink": full_reddit_url(post_permalink),
+        "subreddit_id": data.get("subreddit_id") or post_data.get("subreddit_id") or "",
+        "subreddit_name_prefixed": (
+            data.get("subreddit_name_prefixed")
+            or post_data.get("subreddit_name_prefixed")
+            or ""
+        ),
+        "author_fullname": data.get("author_fullname") or "",
+        "retrieved_at_utc": retrieved_at_utc,
+        "search_sort": search_sort,
+        "search_time_filter": search_time_filter,
+        "post_search_rank_min": search_rank_min(record),
+        "post_search_rank_all": search_rank_all_json(record),
         "matched_query_groups": ";".join(sorted(record["matched_query_groups"])),
         "matched_queries": ";".join(sorted(record["matched_queries"])),
         "subreddit": post_data.get("subreddit") or "",
@@ -538,6 +624,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     started_at = utc_now()
+    retrieved_at_utc = started_at.isoformat()
     snapshot = started_at.strftime("identity_search_%Y%m%dT%H%M%SZ")
     out_dir = Path(args.out_dir) / snapshot
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -586,7 +673,14 @@ def main() -> int:
                     expand_morechildren=not args.skip_morechildren,
                 )
                 normalized_comments = [
-                    normalize_comment(child, record) for child in raw_comments
+                    normalize_comment(
+                        child,
+                        record,
+                        retrieved_at_utc=retrieved_at_utc,
+                        search_sort=args.sort,
+                        search_time_filter=args.time_filter,
+                    )
+                    for child in raw_comments
                 ]
                 author_comments = [
                     row for row in normalized_comments if row["is_author_comment"]
@@ -626,6 +720,9 @@ def main() -> int:
                 record["raw"].get("data", {}).get("id", ""),
                 {},
             ),
+            retrieved_at_utc=retrieved_at_utc,
+            search_sort=args.sort,
+            search_time_filter=args.time_filter,
         )
         for record in records
     ]
@@ -639,7 +736,9 @@ def main() -> int:
     write_jsonl(out_dir / "comment_fetch_log.jsonl", comment_logs)
 
     manifest = {
+        "schema_version": "2",
         "started_at_utc": started_at.isoformat(),
+        "retrieved_at_utc": retrieved_at_utc,
         "finished_at_utc": utc_now().isoformat(),
         "source": "Reddit public search and comments JSON endpoints",
         "query_specs": query_specs,
@@ -657,6 +756,11 @@ def main() -> int:
             "author_comments": "author_comments.csv",
             "search_pages": "search_pages.json",
             "comment_fetch_log": "comment_fetch_log.jsonl",
+        },
+        "schemas": {
+            "posts": POST_FIELDS,
+            "comments": COMMENT_FIELDS,
+            "author_comments": COMMENT_FIELDS,
         },
         "notes": [
             "Reddit search is not guaranteed to be exhaustive or stable over time.",
