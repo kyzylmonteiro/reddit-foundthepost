@@ -1,0 +1,120 @@
+{
+  "pipeline": "collect_posts_then_source_comments",
+  "started_at_utc": "2026-05-27T17:00:18.098502+00:00",
+  "finished_at_utc": "2026-05-27T17:51:55.263282+00:00",
+  "working_directory": "/Users/kmonteir/Documents/projects/reddit-foundthepost",
+  "python_executable": "/Applications/Xcode.app/Contents/Developer/usr/bin/python3",
+  "python_version": "3.9.6",
+  "platform": "macOS-26.4.1-arm64-arm-64bit",
+  "parameters": {
+    "subreddit": "foundthepost",
+    "out_dir": "data",
+    "post_delay_seconds": 1.0,
+    "comment_delay_seconds": 1.5,
+    "more_batch_size": 100,
+    "max_pages": null,
+    "limit_sources": null,
+    "skip_comments": false,
+    "skip_morechildren": false,
+    "fail_on_comment_errors": false,
+    "comment_resume_attempts": 2,
+    "keep_uncompressed_raw_comments": false
+  },
+  "commands": [
+    {
+      "name": "collect_reddit_posts",
+      "argv": [
+        "/Applications/Xcode.app/Contents/Developer/usr/bin/python3",
+        "scripts/collect_reddit_posts.py",
+        "--subreddit",
+        "foundthepost",
+        "--out-dir",
+        "data",
+        "--delay-seconds",
+        "1.0",
+        "--user-agent",
+        "reddit-foundthepost-content-analysis/0.1 (reproducible public collection; contact: local research script)"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "collect_source_comments",
+      "attempt": 1,
+      "argv": [
+        "/Applications/Xcode.app/Contents/Developer/usr/bin/python3",
+        "scripts/collect_source_comments.py",
+        "--source-jsonl",
+        "/Users/kmonteir/Documents/projects/reddit-foundthepost/data/foundthepost_20260527T170018Z/posts_normalized.jsonl",
+        "--out-dir",
+        "/Users/kmonteir/Documents/projects/reddit-foundthepost/data/foundthepost_20260527T170018Z/source_comments",
+        "--delay-seconds",
+        "1.5",
+        "--more-batch-size",
+        "100",
+        "--user-agent",
+        "reddit-foundthepost-content-analysis/0.1 (reproducible public collection; contact: local research script)"
+      ],
+      "returncode": 1
+    },
+    {
+      "name": "collect_source_comments",
+      "attempt": 2,
+      "argv": [
+        "/Applications/Xcode.app/Contents/Developer/usr/bin/python3",
+        "scripts/collect_source_comments.py",
+        "--source-jsonl",
+        "/Users/kmonteir/Documents/projects/reddit-foundthepost/data/foundthepost_20260527T170018Z/posts_normalized.jsonl",
+        "--out-dir",
+        "/Users/kmonteir/Documents/projects/reddit-foundthepost/data/foundthepost_20260527T170018Z/source_comments",
+        "--delay-seconds",
+        "1.5",
+        "--more-batch-size",
+        "100",
+        "--user-agent",
+        "reddit-foundthepost-content-analysis/0.1 (reproducible public collection; contact: local research script)",
+        "--resume"
+      ],
+      "returncode": 1
+    },
+    {
+      "name": "collect_source_comments",
+      "attempt": 3,
+      "argv": [
+        "/Applications/Xcode.app/Contents/Developer/usr/bin/python3",
+        "scripts/collect_source_comments.py",
+        "--source-jsonl",
+        "/Users/kmonteir/Documents/projects/reddit-foundthepost/data/foundthepost_20260527T170018Z/posts_normalized.jsonl",
+        "--out-dir",
+        "/Users/kmonteir/Documents/projects/reddit-foundthepost/data/foundthepost_20260527T170018Z/source_comments",
+        "--delay-seconds",
+        "1.5",
+        "--more-batch-size",
+        "100",
+        "--user-agent",
+        "reddit-foundthepost-content-analysis/0.1 (reproducible public collection; contact: local research script)",
+        "--resume"
+      ],
+      "returncode": 1
+    }
+  ],
+  "snapshot_dir": "/Users/kmonteir/Documents/projects/reddit-foundthepost/data/foundthepost_20260527T170018Z",
+  "post_manifest": "manifest.json",
+  "source_comment_manifest": "source_comments/source_comment_manifest.json",
+  "post_count": 80,
+  "source_thread_count": 81,
+  "source_comment_count": 66690,
+  "source_comment_failed_thread_count": 1,
+  "comment_returncode": 1,
+  "raw_comment_compression": {
+    "compressed": true,
+    "gzip_path": "/Users/kmonteir/Documents/projects/reddit-foundthepost/data/foundthepost_20260527T170018Z/source_comments/source_comments_raw.jsonl.gz",
+    "gzip_bytes": 20200869,
+    "removed_raw": true,
+    "note": "Compressed after the script-generated collection so the public GitHub repository stays under normal file-size limits. Future runs do this automatically in scripts/run_full_collection.py."
+  },
+  "notes": [
+    "This reproduces the collection method and output schema.",
+    "Live Reddit data can change between runs due to edits, deletions, removals, votes, and new posts/comments.",
+    "For bit-for-bit analysis, preserve the generated snapshot directory."
+  ]
+}

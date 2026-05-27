@@ -1,0 +1,30 @@
+{
+  "source_jsonl": "/Users/kmonteir/Documents/projects/reddit-foundthepost/data/foundthepost_20260527T170018Z/posts_normalized.jsonl",
+  "started_at_utc": "2026-05-27T17:51:54.980645+00:00",
+  "finished_at_utc": "2026-05-27T17:51:55.254942+00:00",
+  "source_thread_count": 81,
+  "source_thread_count_this_run": 1,
+  "skipped_completed_source_thread_count": 80,
+  "successful_source_thread_count": 80,
+  "failed_source_thread_count": 1,
+  "comment_count": 66690,
+  "delay_seconds": 1.5,
+  "more_batch_size": 100,
+  "expanded_morechildren": true,
+  "resumed": true,
+  "unresolved_more_count": 9637,
+  "outputs": {
+    "source_posts": "source_posts_for_comments.jsonl",
+    "raw_comments": "source_comments_raw.jsonl.gz",
+    "normalized_jsonl": "source_comments_normalized.jsonl",
+    "normalized_csv": "source_comments_normalized.csv",
+    "fetch_log": "source_comment_fetch_log.jsonl"
+  },
+  "notes": [
+    "Collected comments from Reddit source threads linked by the foundthepost records.",
+    "Includes crosspost parents, direct Reddit post/comment links, and Reddit links found in selftext.",
+    "Deleted, removed, private, quarantined, or otherwise inaccessible comments cannot be recovered.",
+    "unresolved_more_count records comment IDs Reddit's public morechildren endpoint did not return.",
+    "source_comments_raw.jsonl was compressed to source_comments_raw.jsonl.gz for GitHub publishing."
+  ]
+}

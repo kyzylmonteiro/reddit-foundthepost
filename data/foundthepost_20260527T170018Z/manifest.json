@@ -1,0 +1,22 @@
+{
+  "subreddit": "foundthepost",
+  "source": "https://www.reddit.com/r/foundthepost/new.json",
+  "collector": "collect_reddit_posts.py",
+  "started_at_utc": "2026-05-27T17:00:18.198124+00:00",
+  "finished_at_utc": "2026-05-27T17:00:20.500528+00:00",
+  "post_count": 80,
+  "page_count": 1,
+  "max_pages": null,
+  "delay_seconds": 1.0,
+  "notes": [
+    "Collected public submissions from Reddit's unauthenticated new.json listing.",
+    "Deleted, removed, private, or otherwise inaccessible content is not recovered.",
+    "Reddit listing endpoints can cap very large histories; inspect pages.json for pagination details."
+  ],
+  "outputs": {
+    "raw_jsonl": "posts_raw.jsonl",
+    "normalized_jsonl": "posts_normalized.jsonl",
+    "normalized_csv": "posts_normalized.csv",
+    "pages": "pages.json"
+  }
+}

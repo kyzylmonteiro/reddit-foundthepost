@@ -1,0 +1,11 @@
+# Local OS/editor files
+.DS_Store
+*.swp
+
+# Python caches
+__pycache__/
+*.py[cod]
+
+# Large generated raw comments file. The repository stores the compressed
+# source_comments_raw.jsonl.gz copy instead.
+data/**/source_comments/source_comments_raw.jsonl
