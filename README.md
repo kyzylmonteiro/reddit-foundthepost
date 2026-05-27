@@ -13,6 +13,9 @@ python3 scripts/run_full_collection.py
 See `REPRODUCIBILITY.md` for the two-step commands, resume behavior, and live
 data caveats.
 
+For broader Reddit-wide discovery outside `r/foundthepost`, see
+`BROAD_REDDIT_SEARCH.md` and `scripts/search_identity_discovery.py`.
+
 ## Current Snapshot
 
 Latest enriched snapshot:
@@ -36,6 +39,8 @@ yielding 66,690 normalized source-comment records.
   posts linked by the normalized post table.
 - `scripts/run_full_collection.py` runs both collection steps and writes a
   `collection_run_manifest.json` with commands and parameters.
+- `scripts/search_identity_discovery.py` searches Reddit-wide for identity
+  discovery keywords and writes post/comment CSVs.
 - `posts_normalized.csv` is the analysis-friendly table.
 - `posts_normalized.jsonl` is the same normalized data as newline-delimited
   JSON.

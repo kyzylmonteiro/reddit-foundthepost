@@ -9,3 +9,7 @@ __pycache__/
 # Large generated raw comments file. The repository stores the compressed
 # source_comments_raw.jsonl.gz copy instead.
 data/**/source_comments/source_comments_raw.jsonl
+
+# Exploratory broad-search runs can be large/noisy; commit a specific snapshot
+# intentionally if it becomes part of the analysis corpus.
+data/broad_identity_search/
