@@ -16,13 +16,6 @@ data caveats.
 For broader Reddit-wide discovery outside `r/foundthepost`, see
 `BROAD_REDDIT_SEARCH.md` and `scripts/search_identity_discovery.py`.
 
-To run that broader scrape on GitHub's servers, open the **Broad Reddit
-identity search** workflow in Actions, choose **Run workflow**, then download
-the uploaded artifact when it finishes. GitHub Actions needs repository secrets
-named `REDDIT_CLIENT_ID` and `REDDIT_CLIENT_SECRET` so the script can use
-Reddit OAuth; unauthenticated Reddit JSON requests are often blocked from
-hosted runners.
-
 ## Current Snapshot
 
 Latest enriched snapshot:

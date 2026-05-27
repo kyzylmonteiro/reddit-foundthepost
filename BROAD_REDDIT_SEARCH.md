@@ -60,12 +60,6 @@ Run:
 python3 scripts/search_identity_discovery.py
 ```
 
-Or run it on GitHub's servers from the **Broad Reddit identity search** workflow
-in the repository's Actions tab. The workflow uploads the timestamped output
-folder as a downloadable artifact. Before using the workflow, add repository
-secrets `REDDIT_CLIENT_ID` and `REDDIT_CLIENT_SECRET`; hosted runners use Reddit
-OAuth because unauthenticated Reddit JSON requests can be blocked.
-
 The script creates a timestamped directory under `data/broad_identity_search/`
 with:
 
