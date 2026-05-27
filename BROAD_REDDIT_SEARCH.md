@@ -60,6 +60,10 @@ Run:
 python3 scripts/search_identity_discovery.py
 ```
 
+Or run it on GitHub's servers from the **Broad Reddit identity search** workflow
+in the repository's Actions tab. The workflow uploads the timestamped output
+folder as a downloadable artifact.
+
 The script creates a timestamped directory under `data/broad_identity_search/`
 with:
 
@@ -67,6 +71,8 @@ with:
   post/author flair fields, score, upvote ratio, estimated up/downvotes, link,
   durable Reddit IDs, matched queries, search-rank provenance, and comment
   collection counts.
+- `review_posts.csv`: compact, single-line post table for Google Sheets/manual
+  review, with blank coding columns and short text/comment excerpts.
 - `comments.csv`: one row per collected comment, including timestamp, author,
   body, score, Reddit comment/link/parent IDs, permalink, search provenance,
   and whether the comment was written by the post author.

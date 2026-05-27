@@ -145,6 +145,32 @@ COMMENT_FIELDS = [
     "permalink",
 ]
 
+REVIEW_POST_FIELDS = [
+    "include_for_analysis",
+    "review_status",
+    "case_type",
+    "review_notes",
+    "post_id",
+    "post_fullname",
+    "subreddit",
+    "created_iso",
+    "title",
+    "selftext_excerpt",
+    "author_comment_excerpt",
+    "matched_queries",
+    "matched_query_groups",
+    "search_rank_min",
+    "permalink",
+    "score",
+    "upvote_ratio",
+    "estimated_upvotes",
+    "estimated_downvotes",
+    "num_comments_reported",
+    "comments_collected",
+    "author_comments_collected",
+    "comment_fetch_error",
+]
+
 
 def utc_now() -> datetime:
     return datetime.now(timezone.utc)
@@ -453,6 +479,33 @@ def reddit_kind(fullname: str) -> str:
     return fullname.split("_", 1)[0] if "_" in fullname else ""
 
 
+def sheet_text(value: Any, max_chars: int = 1200) -> str:
+    text = "" if value is None else str(value)
+    text = " ".join(text.replace("\r", " ").replace("\n", " ").split())
+    if len(text) > max_chars:
+        text = f"{text[: max_chars - 3]}..."
+    if text.startswith(("=", "+", "-", "@")):
+        return f"'{text}"
+    return text
+
+
+def author_comment_excerpt(
+    post_id: str,
+    author_comment_rows: list[dict[str, Any]],
+    max_chars: int = 1200,
+) -> str:
+    snippets = []
+    for row in author_comment_rows:
+        if row.get("post_id") != post_id:
+            continue
+        created = row.get("created_iso") or ""
+        body = sheet_text(row.get("body", ""), max_chars=300)
+        snippets.append(f"{created}: {body}" if created else body)
+        if len(" | ".join(snippets)) >= max_chars:
+            break
+    return sheet_text(" | ".join(snippets), max_chars=max_chars)
+
+
 def normalize_post(
     record: dict[str, Any],
     comment_stats: dict[str, Any],
@@ -517,6 +570,38 @@ def normalize_post(
         "stickied": data.get("stickied"),
         "removed_by_category": data.get("removed_by_category") or "",
         "comment_fetch_error": comment_stats.get("comment_fetch_error", ""),
+    }
+
+
+def normalize_review_post(
+    post_row: dict[str, Any],
+    author_comment_rows: list[dict[str, Any]],
+) -> dict[str, Any]:
+    post_id = post_row.get("post_id", "")
+    return {
+        "include_for_analysis": "",
+        "review_status": "",
+        "case_type": "",
+        "review_notes": "",
+        "post_id": post_id,
+        "post_fullname": post_row.get("fullname", ""),
+        "subreddit": post_row.get("subreddit", ""),
+        "created_iso": post_row.get("created_iso", ""),
+        "title": sheet_text(post_row.get("title", ""), max_chars=500),
+        "selftext_excerpt": sheet_text(post_row.get("selftext", ""), max_chars=1200),
+        "author_comment_excerpt": author_comment_excerpt(post_id, author_comment_rows),
+        "matched_queries": post_row.get("matched_queries", ""),
+        "matched_query_groups": post_row.get("matched_query_groups", ""),
+        "search_rank_min": post_row.get("search_rank_min", ""),
+        "permalink": post_row.get("permalink", ""),
+        "score": post_row.get("score", ""),
+        "upvote_ratio": post_row.get("upvote_ratio", ""),
+        "estimated_upvotes": post_row.get("estimated_upvotes", ""),
+        "estimated_downvotes": post_row.get("estimated_downvotes", ""),
+        "num_comments_reported": post_row.get("num_comments_reported", ""),
+        "comments_collected": post_row.get("comments_collected", ""),
+        "author_comments_collected": post_row.get("author_comments_collected", ""),
+        "comment_fetch_error": post_row.get("comment_fetch_error", ""),
     }
 
 
@@ -728,6 +813,11 @@ def main() -> int:
     ]
 
     write_csv(out_dir / "posts.csv", POST_FIELDS, post_rows)
+    review_rows = [
+        normalize_review_post(post_row, author_comment_rows)
+        for post_row in post_rows
+    ]
+    write_csv(out_dir / "review_posts.csv", REVIEW_POST_FIELDS, review_rows)
     write_csv(out_dir / "comments.csv", COMMENT_FIELDS, comment_rows)
     write_csv(out_dir / "author_comments.csv", COMMENT_FIELDS, author_comment_rows)
     (out_dir / "search_pages.json").write_text(
@@ -751,6 +841,7 @@ def main() -> int:
         "author_comment_count": len(author_comment_rows),
         "comment_fetch_error_count": sum(1 for log in comment_logs if "error" in log),
         "outputs": {
+            "review_posts": "review_posts.csv",
             "posts": "posts.csv",
             "comments": "comments.csv",
             "author_comments": "author_comments.csv",
@@ -758,11 +849,13 @@ def main() -> int:
             "comment_fetch_log": "comment_fetch_log.jsonl",
         },
         "schemas": {
+            "review_posts": REVIEW_POST_FIELDS,
             "posts": POST_FIELDS,
             "comments": COMMENT_FIELDS,
             "author_comments": COMMENT_FIELDS,
         },
         "notes": [
+            "review_posts.csv is optimized for manual review in Google Sheets; long text is single-line and truncated.",
             "Reddit search is not guaranteed to be exhaustive or stable over time.",
             "Queries are exact phrase searches; Reddit wildcard-style phrases are expanded explicitly.",
             "Post up/downvotes are estimates derived from score and upvote_ratio because Reddit does not expose exact up/downvote counts.",

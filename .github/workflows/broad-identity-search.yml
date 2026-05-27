@@ -1,0 +1,117 @@
+name: Broad Reddit identity search
+
+on:
+  workflow_dispatch:
+    inputs:
+      max_pages_per_query:
+        description: Search result pages per keyword
+        default: "1"
+        required: true
+      max_posts:
+        description: Max deduplicated posts to fetch comments for; 0 means no cap
+        default: "100"
+        required: true
+      sort:
+        description: Reddit search sort
+        default: relevance
+        required: true
+        type: choice
+        options:
+          - relevance
+          - new
+          - top
+          - comments
+          - hot
+      time_filter:
+        description: Reddit search time filter
+        default: all
+        required: true
+        type: choice
+        options:
+          - all
+          - year
+          - month
+          - week
+          - day
+          - hour
+      fetch_comments:
+        description: Fetch comments for each deduplicated post
+        default: true
+        required: true
+        type: boolean
+      expand_morechildren:
+        description: Expand hidden Reddit comment chunks; slower but more complete
+        default: false
+        required: true
+        type: boolean
+
+jobs:
+  search:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run broad identity search
+        id: run_search
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          args=(
+            --out-dir data/broad_identity_search
+            --max-pages-per-query "${{ inputs.max_pages_per_query }}"
+            --max-posts "${{ inputs.max_posts }}"
+            --sort "${{ inputs.sort }}"
+            --time-filter "${{ inputs.time_filter }}"
+          )
+
+          if [[ "${{ inputs.fetch_comments }}" != "true" ]]; then
+            args+=(--skip-comments)
+          fi
+
+          if [[ "${{ inputs.expand_morechildren }}" != "true" ]]; then
+            args+=(--skip-morechildren)
+          fi
+
+          python3 scripts/search_identity_discovery.py "${args[@]}"
+
+          latest_dir="$(find data/broad_identity_search -mindepth 1 -maxdepth 1 -type d | sort | tail -n 1)"
+          echo "artifact_dir=${latest_dir}" >> "$GITHUB_OUTPUT"
+          echo "artifact_name=$(basename "${latest_dir}")" >> "$GITHUB_OUTPUT"
+
+      - name: Write run summary
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest="${{ steps.run_search.outputs.artifact_dir }}/manifest.json"
+
+          python3 - "$manifest" >> "$GITHUB_STEP_SUMMARY" <<'PY'
+          import json
+          import sys
+
+          manifest = json.load(open(sys.argv[1], encoding="utf-8"))
+          print("## Broad Reddit identity search")
+          print()
+          print(f"- Output directory: `{sys.argv[1].rsplit('/', 1)[0]}`")
+          print(f"- Posts: {manifest['post_count']}")
+          print(f"- Comments: {manifest['comment_count']}")
+          print(f"- Author comments: {manifest['author_comment_count']}")
+          print(f"- Comment fetch errors: {manifest['comment_fetch_error_count']}")
+          print()
+          print("Download the workflow artifact and import `review_posts.csv` into Google Sheets for manual review.")
+          PY
+
+      - name: Upload search artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.run_search.outputs.artifact_name }}
+          path: ${{ steps.run_search.outputs.artifact_dir }}
+          retention-days: 30

@@ -16,6 +16,10 @@ data caveats.
 For broader Reddit-wide discovery outside `r/foundthepost`, see
 `BROAD_REDDIT_SEARCH.md` and `scripts/search_identity_discovery.py`.
 
+To run that broader scrape on GitHub's servers, open the **Broad Reddit
+identity search** workflow in Actions, choose **Run workflow**, then download
+the uploaded artifact when it finishes.
+
 ## Current Snapshot
 
 Latest enriched snapshot:
@@ -48,6 +52,17 @@ yielding 66,690 normalized source-comment records.
 - `pages.json` records pagination metadata.
 - `manifest.json` records collection timing, counts, and caveats.
 - `source_comments/` contains flattened comments from linked source posts.
+
+## Broad Search Artifacts
+
+`scripts/search_identity_discovery.py` writes one timestamped folder per run.
+Use `review_posts.csv` for Google Sheets/manual coding: one row per candidate
+post, compact text excerpts, links, matched keywords, scores, and blank review
+columns. `posts.csv` keeps the richer post metadata and rehydration IDs.
+`comments.csv` contains every collected comment; `author_comments.csv` is the
+OP-only subset for fast follow-up. `manifest.json`, `search_pages.json`, and
+`comment_fetch_log.jsonl` explain exactly how the run was made and what Reddit
+returned.
 
 ## Notes
 
