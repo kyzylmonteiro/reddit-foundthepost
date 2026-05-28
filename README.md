@@ -12,7 +12,9 @@ If you are new to the repo, read files in this order:
    for the tracked `r/foundthepost` snapshot and its analysis-ready files.
 3. [`BROAD_REDDIT_SEARCH.md`](BROAD_REDDIT_SEARCH.md) for the Reddit-wide
    keyword search, the larger local scrape, output tables, and join keys.
-4. [`REPRODUCIBILITY.md`](REPRODUCIBILITY.md) only when rerunning the
+4. [`ANNOTATION_GUIDE.md`](ANNOTATION_GUIDE.md) if you are preparing or using
+   the human annotation sheet.
+5. [`REPRODUCIBILITY.md`](REPRODUCIBILITY.md) only when rerunning the
    `r/foundthepost` collection or checking exact collection commands.
 
 You should not need to open every script to understand the data. The scripts
@@ -37,7 +39,9 @@ of a normal GitHub push. On this machine, the latest full local run is:
 
 Start with its `review_posts.csv` for manual coding in Google Sheets. See
 [`BROAD_REDDIT_SEARCH.md`](BROAD_REDDIT_SEARCH.md) for links, table structure,
-and join keys.
+and join keys. For human annotators, use `review_posts_for_annotation.csv`
+instead; it keeps the coding columns at the front so annotators can update the
+sheet without reorganizing it.
 
 ## Reproduce
 

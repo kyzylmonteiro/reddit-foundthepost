@@ -112,6 +112,8 @@ Latest full local scrape:
 
 Artifacts from that run:
 
+- [`review_posts_for_annotation.csv`](data/broad_identity_search/identity_search_20260528T031728Z/review_posts_for_annotation.csv):
+  human annotation table with coding columns at the front.
 - [`review_posts.csv`](data/broad_identity_search/identity_search_20260528T031728Z/review_posts.csv):
   Google Sheets/manual review table, one row per candidate post.
 - [`posts.csv`](data/broad_identity_search/identity_search_20260528T031728Z/posts.csv):
