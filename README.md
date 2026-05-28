@@ -35,7 +35,7 @@ the main documentation for analysis.
 The full Reddit-wide scrape is large, so it is ignored by git and is not part
 of a normal GitHub push. On this machine, the latest full local run is:
 
-`data/broad_identity_search/identity_search_20260528T031728Z/`
+`data/broad_identity_search/20260528_broad_search_results/`
 
 Start with its `review_posts.csv` for manual coding in Google Sheets. See
 [`BROAD_REDDIT_SEARCH.md`](BROAD_REDDIT_SEARCH.md) for links, table structure,

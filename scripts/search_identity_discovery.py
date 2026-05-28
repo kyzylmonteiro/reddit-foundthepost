@@ -769,12 +769,12 @@ def resolve_resume_dir(out_dir_arg: str) -> Path:
 
     candidates = [
         candidate
-        for candidate in path.glob("identity_search_*")
+        for candidate in path.iterdir()
         if candidate.is_dir() and (candidate / RUN_STATE_FILE).exists()
     ]
     if not candidates:
         raise FileNotFoundError(
-            f"No resumable identity_search_* directory found under {path}"
+            f"No resumable run_state.json directory found under {path}"
         )
 
     incomplete = []
@@ -786,6 +786,17 @@ def resolve_resume_dir(out_dir_arg: str) -> Path:
         else:
             incomplete.append(candidate)
     return sorted(incomplete or complete)[-1]
+
+
+def create_dated_run_dir(base_dir: Path, now: datetime) -> Path:
+    stem = now.strftime("%Y%m%d_broad_search_results")
+    candidate = base_dir / stem
+    suffix = 2
+    while candidate.exists():
+        candidate = base_dir / f"{stem}_{suffix}"
+        suffix += 1
+    candidate.mkdir(parents=True, exist_ok=False)
+    return candidate
 
 
 def state_value(state: dict[str, Any], key: str, fallback: Any) -> Any:
@@ -973,9 +984,7 @@ def main() -> int:
     else:
         started_at_utc = now.isoformat()
         retrieved_at_utc = started_at_utc
-        snapshot = now.strftime("identity_search_%Y%m%dT%H%M%SZ")
-        out_dir = Path(args.out_dir) / snapshot
-        out_dir.mkdir(parents=True, exist_ok=True)
+        out_dir = create_dated_run_dir(Path(args.out_dir), now)
         query_specs = unique_query_specs(
             args.query,
             include_defaults=not args.no_default_queries,

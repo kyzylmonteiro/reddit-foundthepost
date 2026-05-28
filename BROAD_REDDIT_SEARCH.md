@@ -132,25 +132,25 @@ Important rehydration/provenance columns:
 
 Latest full local scrape:
 
-`data/broad_identity_search/identity_search_20260528T031728Z/`
+`data/broad_identity_search/20260528_broad_search_results/`
 
 Artifacts from that run:
 
-- [`review_posts_for_annotation.csv`](data/broad_identity_search/identity_search_20260528T031728Z/review_posts_for_annotation.csv):
+- [`review_posts_for_annotation.csv`](data/broad_identity_search/20260528_broad_search_results/review_posts_for_annotation.csv):
   human annotation table with coding columns at the front.
-- [`review_posts.csv`](data/broad_identity_search/identity_search_20260528T031728Z/review_posts.csv):
+- [`review_posts.csv`](data/broad_identity_search/20260528_broad_search_results/review_posts.csv):
   Google Sheets/manual review table, one row per candidate post.
-- [`posts.csv`](data/broad_identity_search/identity_search_20260528T031728Z/posts.csv):
+- [`posts.csv`](data/broad_identity_search/20260528_broad_search_results/posts.csv):
   post-level analysis table, one row per candidate post.
-- [`comments.csv`](data/broad_identity_search/identity_search_20260528T031728Z/comments.csv):
+- [`comments.csv`](data/broad_identity_search/20260528_broad_search_results/comments.csv):
   comment-level analysis table, one row per collected comment.
-- [`author_comments.csv`](data/broad_identity_search/identity_search_20260528T031728Z/author_comments.csv):
+- [`author_comments.csv`](data/broad_identity_search/20260528_broad_search_results/author_comments.csv):
   subset of `comments.csv` where the commenter is the original post author.
-- [`manifest.json`](data/broad_identity_search/identity_search_20260528T031728Z/manifest.json):
+- [`manifest.json`](data/broad_identity_search/20260528_broad_search_results/manifest.json):
   run parameters, schemas, counts, and caveats.
-- [`comment_fetch_log.jsonl`](data/broad_identity_search/identity_search_20260528T031728Z/comment_fetch_log.jsonl):
+- [`comment_fetch_log.jsonl`](data/broad_identity_search/20260528_broad_search_results/comment_fetch_log.jsonl):
   per-post comment fetch status.
-- [`search_records.jsonl`](data/broad_identity_search/identity_search_20260528T031728Z/search_records.jsonl):
+- [`search_records.jsonl`](data/broad_identity_search/20260528_broad_search_results/search_records.jsonl):
   raw saved Reddit search records for later extraction of additional post
   metadata.
 
