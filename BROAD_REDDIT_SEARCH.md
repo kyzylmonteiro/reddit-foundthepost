@@ -104,6 +104,42 @@ Important rehydration/provenance columns:
 - `search_rank_all` is JSON listing every query that surfaced the post and its
   rank within that query's result pages.
 
+## Latest Local Run
+
+Latest full local scrape:
+
+`data/broad_identity_search/identity_search_20260528T031728Z/`
+
+Artifacts from that run:
+
+- [`review_posts.csv`](data/broad_identity_search/identity_search_20260528T031728Z/review_posts.csv):
+  Google Sheets/manual review table, one row per candidate post.
+- [`posts.csv`](data/broad_identity_search/identity_search_20260528T031728Z/posts.csv):
+  post-level analysis table, one row per candidate post.
+- [`comments.csv`](data/broad_identity_search/identity_search_20260528T031728Z/comments.csv):
+  comment-level analysis table, one row per collected comment.
+- [`author_comments.csv`](data/broad_identity_search/identity_search_20260528T031728Z/author_comments.csv):
+  subset of `comments.csv` where the commenter is the original post author.
+- [`manifest.json`](data/broad_identity_search/identity_search_20260528T031728Z/manifest.json):
+  run parameters, schemas, counts, and caveats.
+- [`comment_fetch_log.jsonl`](data/broad_identity_search/identity_search_20260528T031728Z/comment_fetch_log.jsonl):
+  per-post comment fetch status.
+- [`search_records.jsonl`](data/broad_identity_search/identity_search_20260528T031728Z/search_records.jsonl):
+  raw saved Reddit search records for later extraction of additional post
+  metadata.
+
+Join map:
+
+- `review_posts.post_id` joins to `posts.post_id`.
+- `comments.post_id` joins to `posts.post_id`.
+- `author_comments.post_id` joins to `posts.post_id`.
+- `author_comments.comment_fullname` joins to `comments.comment_fullname`.
+
+For most analysis, keep `posts.csv` and `comments.csv` separate and join on
+`post_id` only when needed. A one-row-per-comment joined table is possible, but
+it repeats post metadata across every comment row and is less convenient in
+Google Sheets.
+
 ## Recommended First Run
 
 The full default query set can be large, especially because of `"found out"`.

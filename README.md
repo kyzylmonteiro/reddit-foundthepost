@@ -1,6 +1,43 @@
 # reddit-foundthepost
 
-Public post collection for content analysis of `r/foundthepost`.
+Public Reddit post/comment collection for content analysis of situations where
+someone's Reddit post or account is discovered by someone else.
+
+## Start Here
+
+If you are new to the repo, read files in this order:
+
+1. This `README.md` for the project map and what is already included.
+2. [`data/foundthepost_20260527T170018Z/README.md`](data/foundthepost_20260527T170018Z/README.md)
+   for the tracked `r/foundthepost` snapshot and its analysis-ready files.
+3. [`BROAD_REDDIT_SEARCH.md`](BROAD_REDDIT_SEARCH.md) for the Reddit-wide
+   keyword search, the larger local scrape, output tables, and join keys.
+4. [`REPRODUCIBILITY.md`](REPRODUCIBILITY.md) only when rerunning the
+   `r/foundthepost` collection or checking exact collection commands.
+
+You should not need to open every script to understand the data. The scripts
+are here for reproducibility; the per-dataset README files and manifests are
+the main documentation for analysis.
+
+## What Is In This Repo
+
+- A tracked `r/foundthepost` snapshot with 80 public subreddit submissions and
+  66,690 normalized comments from linked source posts.
+- Reproducible Python scripts for collecting the subreddit snapshot and source
+  comments.
+- A Reddit-wide keyword-search collector for finding broader identity-discovery
+  cases outside `r/foundthepost`.
+
+## What Is Local Only
+
+The full Reddit-wide scrape is large, so it is ignored by git and is not part
+of a normal GitHub push. On this machine, the latest full local run is:
+
+`data/broad_identity_search/identity_search_20260528T031728Z/`
+
+Start with its `review_posts.csv` for manual coding in Google Sheets. See
+[`BROAD_REDDIT_SEARCH.md`](BROAD_REDDIT_SEARCH.md) for links, table structure,
+and join keys.
 
 ## Reproduce
 
