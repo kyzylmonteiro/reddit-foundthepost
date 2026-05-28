@@ -12,6 +12,10 @@ This is a Google Sheets-ready screening file with one row per candidate Reddit
 post. The first columns are for human coding; the remaining columns are source
 metadata and should be treated as read-only.
 
+Use the copy supplied in the Box annotator packet as the shared source of truth.
+Do not rerun the scraper to create an annotation sheet unless the project lead
+is intentionally starting a new scrape; Reddit results can change over time.
+
 ## Coding Columns
 
 Fill only these columns unless the project lead asks otherwise:

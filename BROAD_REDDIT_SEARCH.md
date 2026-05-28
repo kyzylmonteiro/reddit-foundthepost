@@ -92,6 +92,30 @@ with:
   `comment_checkpoints/`: resume state so completed post/comment fetches are
   reused rather than collected again.
 
+## Box Dataset Versus Rerunning
+
+Use the Box upload as the exact dataset for annotation and shared analysis.
+The Reddit-wide search uses live Reddit public endpoints, so rerunning the
+script later can produce different posts, scores, removals, comments, or search
+rankings. A rerun is reproducible in method and schema, not guaranteed to match
+the Box data row for row.
+
+To make a comparable new scrape using the same broad-run settings as the Box
+dataset:
+
+```bash
+python3 scripts/search_identity_discovery.py \
+  --max-pages-per-query 3 \
+  --max-posts 0 \
+  --skip-morechildren
+```
+
+If interrupted:
+
+```bash
+python3 scripts/search_identity_discovery.py --resume
+```
+
 Important rehydration/provenance columns:
 
 - Post IDs: `post_id`, `fullname`, `reddit_kind`, `subreddit_id`,

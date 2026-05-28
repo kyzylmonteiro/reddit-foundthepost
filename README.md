@@ -43,6 +43,12 @@ and join keys. For human annotators, use `review_posts_for_annotation.csv`
 instead; it keeps the coding columns at the front so annotators can update the
 sheet without reorganizing it.
 
+If you are receiving this repo with a Box link, use the Box file as the exact
+dataset for annotation. Rerunning the Reddit-wide script reproduces the
+collection method and output schema, but Reddit search/results can change, so
+a fresh run should be treated as a comparable new scrape rather than an exact
+copy of the Box upload.
+
 ## Reproduce
 
 Run the full live collection workflow with:
