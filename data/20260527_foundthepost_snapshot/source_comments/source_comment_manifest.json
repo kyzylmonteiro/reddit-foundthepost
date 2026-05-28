@@ -1,5 +1,5 @@
 {
-  "source_jsonl": "/Users/kmonteir/Documents/projects/reddit-foundthepost/data/foundthepost_20260527T170018Z/posts_normalized.jsonl",
+  "source_jsonl": "/Users/kmonteir/Documents/projects/reddit-foundthepost/data/20260527_foundthepost_snapshot/posts_normalized.jsonl",
   "started_at_utc": "2026-05-27T17:51:54.980645+00:00",
   "finished_at_utc": "2026-05-27T17:51:55.254942+00:00",
   "source_thread_count": 81,

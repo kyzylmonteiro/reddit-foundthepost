@@ -234,6 +234,18 @@ def write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         writer.writerows(rows)
 
 
+def create_snapshot_dir(base_dir: Path, subreddit: str, started_at: datetime) -> Path:
+    date_prefix = started_at.strftime("%Y%m%d")
+    stem = f"{date_prefix}_{subreddit}_snapshot"
+    candidate = base_dir / stem
+    suffix = 2
+    while candidate.exists():
+        candidate = base_dir / f"{stem}_{suffix}"
+        suffix += 1
+    candidate.mkdir(parents=True, exist_ok=False)
+    return candidate
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--subreddit", default="foundthepost")
@@ -253,9 +265,7 @@ def main() -> int:
     args = parse_args()
     started_at = utc_now()
     subreddit = args.subreddit.strip().removeprefix("r/").strip("/")
-    snapshot = started_at.strftime("%Y%m%dT%H%M%SZ")
-    out_dir = Path(args.out_dir) / f"{subreddit}_{snapshot}"
-    out_dir.mkdir(parents=True, exist_ok=True)
+    out_dir = create_snapshot_dir(Path(args.out_dir), subreddit, started_at)
 
     posts, pages = collect_posts(
         subreddit=subreddit,

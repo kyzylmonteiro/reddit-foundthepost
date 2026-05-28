@@ -8,7 +8,7 @@ rescored, or newly added.
 For bit-for-bit analysis of the dataset already collected, use the preserved
 snapshot directory:
 
-`data/foundthepost_20260527T170018Z/`
+`data/20260527_foundthepost_snapshot/`
 
 ## One-Command Collection
 
@@ -21,7 +21,7 @@ python3 scripts/run_full_collection.py
 This creates:
 
 ```text
-data/foundthepost_<UTC_TIMESTAMP>/
+data/<YYYYMMDD>_foundthepost_snapshot/
   posts_raw.jsonl
   posts_normalized.jsonl
   posts_normalized.csv
@@ -36,6 +36,9 @@ data/foundthepost_<UTC_TIMESTAMP>/
     source_comment_fetch_log.jsonl
     source_comment_manifest.json
 ```
+
+If the same collection is run more than once on a date, the script adds a
+numeric suffix such as `_2`.
 
 The runner writes `collection_run_manifest.json` with the exact commands,
 parameters, Python version, platform string, output paths, and summary counts.

@@ -8,7 +8,7 @@ someone's Reddit post or account is discovered by someone else.
 If you are new to the repo, read files in this order:
 
 1. This `README.md` for the project map and what is already included.
-2. [`data/foundthepost_20260527T170018Z/README.md`](data/foundthepost_20260527T170018Z/README.md)
+2. [`data/20260527_foundthepost_snapshot/README.md`](data/20260527_foundthepost_snapshot/README.md)
    for the tracked `r/foundthepost` snapshot and its analysis-ready files.
 3. [`BROAD_REDDIT_SEARCH.md`](BROAD_REDDIT_SEARCH.md) for the Reddit-wide
    keyword search, the larger local scrape, output tables, and join keys.
@@ -67,7 +67,7 @@ For broader Reddit-wide discovery outside `r/foundthepost`, see
 
 Latest enriched snapshot:
 
-`data/foundthepost_20260527T170018Z/`
+`data/20260527_foundthepost_snapshot/`
 
 It contains 80 public submissions collected from Reddit's unauthenticated
 `new.json` listing on 2026-05-27. Reddit returned one page with no pagination
@@ -81,7 +81,7 @@ yielding 66,690 normalized source-comment records.
 ## Files
 
 - `scripts/collect_reddit_posts.py` collects public submissions and writes a
-  timestamped snapshot under `data/`.
+  date-stamped snapshot under `data/`.
 - `scripts/collect_source_comments.py` collects comments from source Reddit
   posts linked by the normalized post table.
 - `scripts/run_full_collection.py` runs both collection steps and writes a
