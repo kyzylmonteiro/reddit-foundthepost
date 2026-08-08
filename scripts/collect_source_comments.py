@@ -14,12 +14,14 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode
-from urllib.request import Request, urlopen
 
-
-REDDIT_BASE = "https://www.reddit.com"
+from reddit_client import (
+    NO_CREDENTIALS_WARNING,
+    REDDIT_BASE,
+    RedditClient,
+    add_credential_arguments,
+    client_from_args,
+)
 DEFAULT_USER_AGENT = (
     "reddit-foundthepost-content-analysis/0.1 "
     "(public source comment collection; contact: local research script)"
@@ -82,31 +84,6 @@ def to_iso(timestamp: float | int | str | None) -> str:
     if timestamp in (None, ""):
         return ""
     return datetime.fromtimestamp(float(timestamp), timezone.utc).isoformat()
-
-
-def request_json(url: str, user_agent: str, retries: int = 6) -> Any:
-    request = Request(url, headers={"User-Agent": user_agent})
-    for attempt in range(retries + 1):
-        try:
-            with urlopen(request, timeout=45) as response:
-                body = response.read().decode("utf-8")
-                return json.loads(body)
-        except HTTPError as error:
-            if error.code == 429 and attempt < retries:
-                retry_after = error.headers.get("Retry-After")
-                delay = int(retry_after) if retry_after and retry_after.isdigit() else 60
-                time.sleep(delay)
-                continue
-            if 500 <= error.code < 600 and attempt < retries:
-                time.sleep(2**attempt)
-                continue
-            raise
-        except (URLError, TimeoutError):
-            if attempt < retries:
-                time.sleep(2**attempt)
-                continue
-            raise
-    raise RuntimeError(f"failed to fetch {url}")
 
 
 def full_reddit_url(url_or_path: str) -> str:
@@ -307,7 +284,7 @@ def normalize_comment(
 def fetch_morechildren(
     source_id: str,
     child_ids: list[str],
-    user_agent: str,
+    client: RedditClient,
 ) -> list[dict[str, Any]]:
     params = {
         "api_type": "json",
@@ -315,21 +292,21 @@ def fetch_morechildren(
         "children": ",".join(child_ids),
         "raw_json": "1",
     }
-    url = f"{REDDIT_BASE}/api/morechildren.json?{urlencode(params)}"
-    payload = request_json(url, user_agent)
+    url = client.api_url("/api/morechildren", params)
+    payload = client.request_json(url)
     return payload.get("json", {}).get("data", {}).get("things", [])
 
 
 def collect_source_comments(
     source: SourceReference,
-    user_agent: str,
+    client: RedditClient,
     delay_seconds: float,
     more_batch_size: int,
     expand_morechildren: bool,
 ) -> tuple[dict[str, Any], list[dict[str, Any]], list[dict[str, Any]]]:
     params = {"limit": "500", "depth": "10", "raw_json": "1"}
-    url = f"{REDDIT_BASE}/comments/{source.source_id}.json?{urlencode(params)}"
-    payload = request_json(url, user_agent)
+    url = client.api_url(f"/comments/{source.source_id}", params)
+    payload = client.request_json(url)
     time.sleep(delay_seconds)
 
     if not isinstance(payload, list) or len(payload) < 2:
@@ -375,7 +352,7 @@ def collect_source_comments(
                 continue
 
             attempted_more_ids.update(batch)
-            things = fetch_morechildren(source.source_id, batch, user_agent)
+            things = fetch_morechildren(source.source_id, batch, client)
             time.sleep(delay_seconds)
 
             nested_more_ids: set[str] = set()
@@ -495,6 +472,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--delay-seconds", type=float, default=0.25)
     parser.add_argument("--more-batch-size", type=int, default=100)
     parser.add_argument("--user-agent", default=DEFAULT_USER_AGENT)
+    add_credential_arguments(parser)
     parser.add_argument(
         "--limit-sources",
         type=int,
@@ -516,6 +494,11 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
+
+    client = client_from_args(args)
+    if not client.uses_oauth:
+        print(NO_CREDENTIALS_WARNING, file=sys.stderr, flush=True)
+
     source_jsonl = Path(args.source_jsonl)
     out_dir = Path(args.out_dir) if args.out_dir else source_jsonl.parent / "source_comments"
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -577,7 +560,7 @@ def main() -> int:
             try:
                 thread_log, raw_comments, normalized_comments = collect_source_comments(
                     source=source,
-                    user_agent=args.user_agent,
+                    client=client,
                     delay_seconds=args.delay_seconds,
                     more_batch_size=args.more_batch_size,
                     expand_morechildren=not args.skip_morechildren,
@@ -638,6 +621,7 @@ def main() -> int:
 
     manifest = {
         "source_jsonl": str(source_jsonl),
+        "auth_mode": client.auth_mode,
         "started_at_utc": started_at.isoformat(),
         "finished_at_utc": utc_now().isoformat(),
         "source_thread_count": len(sources),

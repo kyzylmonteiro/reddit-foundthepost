@@ -16,12 +16,14 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode
-from urllib.request import Request, urlopen
 
-
-REDDIT_BASE = "https://www.reddit.com"
+from reddit_client import (
+    NO_CREDENTIALS_WARNING,
+    REDDIT_BASE,
+    RedditClient,
+    add_credential_arguments,
+    client_from_args,
+)
 DEFAULT_USER_AGENT = (
     "reddit-foundthepost-content-analysis/0.1 "
     "(public subreddit collection; contact: local research script)"
@@ -80,31 +82,6 @@ def to_iso(timestamp: float | int | None) -> str:
     if timestamp is None:
         return ""
     return datetime.fromtimestamp(float(timestamp), timezone.utc).isoformat()
-
-
-def request_json(url: str, user_agent: str, retries: int = 4) -> dict[str, Any]:
-    request = Request(url, headers={"User-Agent": user_agent})
-    for attempt in range(retries + 1):
-        try:
-            with urlopen(request, timeout=30) as response:
-                body = response.read().decode("utf-8")
-                return json.loads(body)
-        except HTTPError as error:
-            if error.code == 429 and attempt < retries:
-                retry_after = error.headers.get("Retry-After")
-                delay = int(retry_after) if retry_after and retry_after.isdigit() else 10
-                time.sleep(delay)
-                continue
-            if 500 <= error.code < 600 and attempt < retries:
-                time.sleep(2**attempt)
-                continue
-            raise
-        except (URLError, TimeoutError):
-            if attempt < retries:
-                time.sleep(2**attempt)
-                continue
-            raise
-    raise RuntimeError(f"failed to fetch {url}")
 
 
 def normalize_post(child: dict[str, Any]) -> dict[str, Any]:
@@ -168,7 +145,7 @@ def normalize_post(child: dict[str, Any]) -> dict[str, Any]:
 
 def collect_posts(
     subreddit: str,
-    user_agent: str,
+    client: RedditClient,
     delay_seconds: float,
     max_pages: int | None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
@@ -182,8 +159,8 @@ def collect_posts(
         params = {"limit": "100", "raw_json": "1"}
         if after:
             params["after"] = after
-        url = f"{REDDIT_BASE}/r/{subreddit}/new.json?{urlencode(params)}"
-        payload = request_json(url, user_agent)
+        url = client.api_url(f"/r/{subreddit}/new", params)
+        payload = client.request_json(url)
         listing = payload.get("data", {})
         children = listing.get("children", [])
 
@@ -252,6 +229,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--out-dir", default="data")
     parser.add_argument("--delay-seconds", type=float, default=1.0)
     parser.add_argument("--user-agent", default=DEFAULT_USER_AGENT)
+    add_credential_arguments(parser)
     parser.add_argument(
         "--max-pages",
         type=int,
@@ -265,14 +243,23 @@ def main() -> int:
     args = parse_args()
     started_at = utc_now()
     subreddit = args.subreddit.strip().removeprefix("r/").strip("/")
+
+    client = client_from_args(args)
+    if not client.uses_oauth:
+        print(NO_CREDENTIALS_WARNING, file=sys.stderr, flush=True)
+
     out_dir = create_snapshot_dir(Path(args.out_dir), subreddit, started_at)
 
-    posts, pages = collect_posts(
-        subreddit=subreddit,
-        user_agent=args.user_agent,
-        delay_seconds=args.delay_seconds,
-        max_pages=args.max_pages,
-    )
+    try:
+        posts, pages = collect_posts(
+            subreddit=subreddit,
+            client=client,
+            delay_seconds=args.delay_seconds,
+            max_pages=args.max_pages,
+        )
+    except RuntimeError as error:
+        print(f"Collection failed: {error}", file=sys.stderr)
+        return 3
     rows = [normalize_post(post) for post in posts]
 
     write_jsonl(out_dir / "posts_raw.jsonl", posts)
@@ -282,6 +269,7 @@ def main() -> int:
     manifest = {
         "subreddit": subreddit,
         "source": f"{REDDIT_BASE}/r/{subreddit}/new.json",
+        "auth_mode": client.auth_mode,
         "collector": Path(__file__).name,
         "started_at_utc": started_at.isoformat(),
         "finished_at_utc": utc_now().isoformat(),

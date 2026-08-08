@@ -12,12 +12,14 @@ from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode
-from urllib.request import Request, urlopen
 
-
-REDDIT_BASE = "https://www.reddit.com"
+from reddit_client import (
+    NO_CREDENTIALS_WARNING,
+    REDDIT_BASE,
+    RedditClient,
+    add_credential_arguments,
+    client_from_args,
+)
 DEFAULT_USER_AGENT = (
     "reddit-foundthepost-content-analysis/0.1 "
     "(broad public Reddit identity-discovery search; contact: local research script)"
@@ -76,6 +78,9 @@ POST_FIELDS = [
     "search_rank_all",
     "matched_query_groups",
     "matched_queries",
+    "matched_categories",
+    "matched_target_terms",
+    "matched_templates",
     "subreddit",
     "title",
     "selftext",
@@ -122,6 +127,9 @@ COMMENT_FIELDS = [
     "post_search_rank_all",
     "matched_query_groups",
     "matched_queries",
+    "matched_categories",
+    "matched_target_terms",
+    "matched_templates",
     "subreddit",
     "post_title",
     "post_author",
@@ -159,6 +167,9 @@ REVIEW_POST_FIELDS = [
     "author_comment_excerpt",
     "matched_queries",
     "matched_query_groups",
+    "matched_categories",
+    "matched_target_terms",
+    "matched_templates",
     "search_rank_min",
     "permalink",
     "score",
@@ -170,6 +181,13 @@ REVIEW_POST_FIELDS = [
     "author_comments_collected",
     "comment_fetch_error",
 ]
+
+# Post-record key -> query-spec key, for provenance carried from keyword CSVs.
+PROVENANCE_FIELDS = {
+    "matched_categories": "category",
+    "matched_target_terms": "target_term",
+    "matched_templates": "template",
+}
 
 RUN_STATE_FILE = "run_state.json"
 SEARCH_RECORDS_FILE = "search_records.jsonl"
@@ -186,30 +204,6 @@ def to_iso(timestamp: float | int | str | None) -> str:
     return datetime.fromtimestamp(float(timestamp), timezone.utc).isoformat()
 
 
-def request_json(url: str, user_agent: str, retries: int = 6) -> Any:
-    request = Request(url, headers={"User-Agent": user_agent})
-    for attempt in range(retries + 1):
-        try:
-            with urlopen(request, timeout=45) as response:
-                return json.loads(response.read().decode("utf-8"))
-        except HTTPError as error:
-            if error.code == 429 and attempt < retries:
-                retry_after = error.headers.get("Retry-After")
-                delay = int(retry_after) if retry_after and retry_after.isdigit() else 60
-                time.sleep(delay)
-                continue
-            if 500 <= error.code < 600 and attempt < retries:
-                time.sleep(2**attempt)
-                continue
-            raise
-        except (TimeoutError, URLError):
-            if attempt < retries:
-                time.sleep(2**attempt)
-                continue
-            raise
-    raise RuntimeError(f"failed to fetch {url}")
-
-
 def full_reddit_url(url_or_path: str) -> str:
     if not url_or_path:
         return ""
@@ -222,25 +216,89 @@ def exact_query(query: str) -> str:
     return f'"{query}"'
 
 
+PHRASE_COLUMN_CANDIDATES = ("search phrase", "query", "phrase", "search_phrase")
+
+
+def read_query_csv(path: Path, group: str) -> list[dict[str, str]]:
+    """Load search phrases from a keyword CSV, keeping threat-model provenance.
+
+    The phrase column may be named "Search Phrase", "query", or "phrase". The
+    optional Category / Target Term / Template columns are carried through so
+    the threat model each phrase came from survives into the output tables.
+    """
+    with path.open("r", encoding="utf-8", newline="") as handle:
+        reader = csv.DictReader(handle)
+        fieldnames = reader.fieldnames or []
+        lookup = {name.strip().lower(): name for name in fieldnames}
+
+        phrase_column = next(
+            (lookup[name] for name in PHRASE_COLUMN_CANDIDATES if name in lookup),
+            None,
+        )
+        if phrase_column is None:
+            raise ValueError(
+                f"{path} has no phrase column; expected one of: "
+                f"{', '.join(PHRASE_COLUMN_CANDIDATES)}"
+            )
+
+        category_column = lookup.get("category", "")
+        target_column = lookup.get("target term", "")
+        template_column = lookup.get("template", "")
+
+        specs: list[dict[str, str]] = []
+        for row in reader:
+            query = (row.get(phrase_column) or "").strip().strip('"')
+            if not query:
+                continue
+            specs.append(
+                {
+                    "group": group,
+                    "query": query,
+                    "category": (row.get(category_column) or "").strip()
+                    if category_column
+                    else "",
+                    "target_term": (row.get(target_column) or "").strip()
+                    if target_column
+                    else "",
+                    "template": (row.get(template_column) or "").strip()
+                    if template_column
+                    else "",
+                }
+            )
+    return specs
+
+
 def unique_query_specs(
     extra_queries: list[str],
     include_defaults: bool,
+    query_csvs: list[str] | None = None,
+    query_set_label: str = "",
 ) -> list[dict[str, str]]:
     specs: list[dict[str, str]] = []
     seen: set[str] = set()
+
+    def add(spec: dict[str, str]) -> None:
+        key = spec["query"].lower()
+        if key not in seen:
+            seen.add(key)
+            specs.append(spec)
+
     if include_defaults:
         for group in DEFAULT_QUERY_GROUPS:
             for query in group["queries"]:
-                key = query.lower()
-                if key not in seen:
-                    seen.add(key)
-                    specs.append({"group": group["group"], "query": query})
+                add({"group": group["group"], "query": query})
+
+    for csv_path in query_csvs or []:
+        path = Path(csv_path)
+        group = query_set_label or path.stem
+        for spec in read_query_csv(path, group):
+            add(spec)
+
     for query in extra_queries:
         clean = query.strip().strip('"')
-        key = clean.lower()
-        if clean and key not in seen:
-            seen.add(key)
-            specs.append({"group": "extra_cli", "query": clean})
+        if clean:
+            add({"group": "extra_cli", "query": clean})
+
     return specs
 
 
@@ -265,7 +323,7 @@ def estimate_votes(score: Any, upvote_ratio: Any) -> tuple[str, str]:
 
 def search_posts(
     query_specs: list[dict[str, str]],
-    user_agent: str,
+    client: RedditClient,
     sort: str,
     time_filter: str,
     max_pages_per_query: int,
@@ -292,8 +350,8 @@ def search_posts(
             }
             if after:
                 params["after"] = after
-            url = f"{REDDIT_BASE}/search.json?{urlencode(params)}"
-            payload = request_json(url, user_agent)
+            url = client.api_url("/search", params)
+            payload = client.request_json(url)
             listing = payload.get("data", {})
             children = listing.get("children", [])
 
@@ -324,11 +382,18 @@ def search_posts(
                         "raw": child,
                         "matched_queries": set(),
                         "matched_query_groups": set(),
+                        "matched_categories": set(),
+                        "matched_target_terms": set(),
+                        "matched_templates": set(),
                         "search_ranks": [],
                     },
                 )
                 record["matched_queries"].add(query)
                 record["matched_query_groups"].add(query_spec["group"])
+                for record_key, spec_key in PROVENANCE_FIELDS.items():
+                    value = query_spec.get(spec_key, "")
+                    if value:
+                        record[record_key].add(value)
                 record["search_ranks"].append(
                     {
                         "query_group": query_spec["group"],
@@ -379,7 +444,7 @@ def iter_comment_nodes(
 def fetch_morechildren(
     post_id: str,
     child_ids: list[str],
-    user_agent: str,
+    client: RedditClient,
 ) -> list[dict[str, Any]]:
     params = {
         "api_type": "json",
@@ -387,21 +452,21 @@ def fetch_morechildren(
         "children": ",".join(child_ids),
         "raw_json": "1",
     }
-    url = f"{REDDIT_BASE}/api/morechildren.json?{urlencode(params)}"
-    payload = request_json(url, user_agent)
+    url = client.api_url("/api/morechildren", params)
+    payload = client.request_json(url)
     return payload.get("json", {}).get("data", {}).get("things", [])
 
 
 def collect_comments(
     post_id: str,
-    user_agent: str,
+    client: RedditClient,
     delay_seconds: float,
     more_batch_size: int,
     expand_morechildren: bool,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     params = {"limit": "500", "depth": "10", "raw_json": "1"}
-    url = f"{REDDIT_BASE}/comments/{post_id}.json?{urlencode(params)}"
-    payload = request_json(url, user_agent)
+    url = client.api_url(f"/comments/{post_id}", params)
+    payload = client.request_json(url)
     time.sleep(delay_seconds)
 
     if not isinstance(payload, list) or len(payload) < 2:
@@ -436,7 +501,7 @@ def collect_comments(
             attempted_more_ids.update(batch)
             nested_more_ids: set[str] = set()
             for child in iter_comment_nodes(
-                fetch_morechildren(post_id, batch, user_agent),
+                fetch_morechildren(post_id, batch, client),
                 nested_more_ids,
             ):
                 comment_id = child.get("data", {}).get("id")
@@ -541,6 +606,9 @@ def normalize_post(
         "search_rank_all": search_rank_all_json(record),
         "matched_query_groups": ";".join(sorted(record["matched_query_groups"])),
         "matched_queries": ";".join(sorted(record["matched_queries"])),
+        "matched_categories": ";".join(sorted(record.get("matched_categories", []))),
+        "matched_target_terms": ";".join(sorted(record.get("matched_target_terms", []))),
+        "matched_templates": ";".join(sorted(record.get("matched_templates", []))),
         "subreddit": data.get("subreddit") or "",
         "title": title,
         "selftext": selftext,
@@ -596,6 +664,9 @@ def normalize_review_post(
         "author_comment_excerpt": author_comment_excerpt(post_id, author_comment_rows),
         "matched_queries": post_row.get("matched_queries", ""),
         "matched_query_groups": post_row.get("matched_query_groups", ""),
+        "matched_categories": post_row.get("matched_categories", ""),
+        "matched_target_terms": post_row.get("matched_target_terms", ""),
+        "matched_templates": post_row.get("matched_templates", ""),
         "search_rank_min": post_row.get("search_rank_min", ""),
         "permalink": post_row.get("permalink", ""),
         "score": post_row.get("score", ""),
@@ -645,6 +716,9 @@ def normalize_comment(
         "post_search_rank_all": search_rank_all_json(record),
         "matched_query_groups": ";".join(sorted(record["matched_query_groups"])),
         "matched_queries": ";".join(sorted(record["matched_queries"])),
+        "matched_categories": ";".join(sorted(record.get("matched_categories", []))),
+        "matched_target_terms": ";".join(sorted(record.get("matched_target_terms", []))),
+        "matched_templates": ";".join(sorted(record.get("matched_templates", []))),
         "subreddit": post_data.get("subreddit") or "",
         "post_title": post_data.get("title") or "",
         "post_author": post_author,
@@ -717,21 +791,27 @@ def count_csv_rows(path: Path) -> int:
 
 
 def record_to_json(record: dict[str, Any]) -> dict[str, Any]:
-    return {
+    payload = {
         "raw": record["raw"],
         "matched_queries": sorted(record.get("matched_queries", [])),
         "matched_query_groups": sorted(record.get("matched_query_groups", [])),
         "search_ranks": record.get("search_ranks", []),
     }
+    for key in PROVENANCE_FIELDS:
+        payload[key] = sorted(record.get(key, []))
+    return payload
 
 
 def record_from_json(row: dict[str, Any]) -> dict[str, Any]:
-    return {
+    record = {
         "raw": row["raw"],
         "matched_queries": set(row.get("matched_queries", [])),
         "matched_query_groups": set(row.get("matched_query_groups", [])),
         "search_ranks": row.get("search_ranks", []),
     }
+    for key in PROVENANCE_FIELDS:
+        record[key] = set(row.get(key, []))
+    return record
 
 
 def write_search_records(path: Path, records: list[dict[str, Any]]) -> None:
@@ -925,6 +1005,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--skip-comments", action="store_true")
     parser.add_argument("--skip-morechildren", action="store_true")
     parser.add_argument(
+        "--author-comments-only",
+        action="store_true",
+        help=(
+            "Keep only comments written by the post author and skip the "
+            "morechildren expansion, which is where most collection time goes. "
+            "Still one comments request per post."
+        ),
+    )
+    parser.add_argument(
         "--resume",
         action="store_true",
         help=(
@@ -938,11 +1027,30 @@ def parse_args() -> argparse.Namespace:
         help="When resuming, retry posts whose previous comment fetch logged an error.",
     )
     parser.add_argument("--user-agent", default=DEFAULT_USER_AGENT)
+    add_credential_arguments(parser)
     parser.add_argument(
         "--query",
         action="append",
         default=[],
         help="Add an extra exact-phrase query. May be repeated.",
+    )
+    parser.add_argument(
+        "--query-csv",
+        action="append",
+        default=[],
+        help=(
+            "Load exact-phrase queries from a keyword CSV with a Search Phrase "
+            "column. Category / Target Term / Template are carried into the "
+            "output tables. May be repeated."
+        ),
+    )
+    parser.add_argument(
+        "--query-set",
+        default="",
+        help=(
+            "Label recorded as matched_query_groups for --query-csv phrases. "
+            "Defaults to each CSV's filename stem."
+        ),
     )
     parser.add_argument(
         "--no-default-queries",
@@ -956,6 +1064,10 @@ def main() -> int:
     args = parse_args()
     now = utc_now()
 
+    client = client_from_args(args)
+    if not client.uses_oauth:
+        print(NO_CREDENTIALS_WARNING, file=sys.stderr, flush=True)
+
     if args.resume:
         try:
             out_dir = resolve_resume_dir(args.out_dir)
@@ -968,6 +1080,8 @@ def main() -> int:
         query_specs = state.get("query_specs") or unique_query_specs(
             args.query,
             include_defaults=not args.no_default_queries,
+            query_csvs=args.query_csv,
+            query_set_label=args.query_set,
         )
         sort = state_value(state, "sort", args.sort)
         time_filter = state_value(state, "time_filter", args.time_filter)
@@ -980,15 +1094,24 @@ def main() -> int:
             state_value(state, "skip_morechildren", args.skip_morechildren)
         )
         more_batch_size = int(state_value(state, "more_batch_size", args.more_batch_size))
+        author_comments_only = bool(
+            state_value(state, "author_comments_only", args.author_comments_only)
+        )
         print(f"Resuming {out_dir}", file=sys.stderr, flush=True)
     else:
         started_at_utc = now.isoformat()
         retrieved_at_utc = started_at_utc
         out_dir = create_dated_run_dir(Path(args.out_dir), now)
-        query_specs = unique_query_specs(
-            args.query,
-            include_defaults=not args.no_default_queries,
-        )
+        try:
+            query_specs = unique_query_specs(
+                args.query,
+                include_defaults=not args.no_default_queries,
+                query_csvs=args.query_csv,
+                query_set_label=args.query_set,
+            )
+        except (OSError, ValueError) as error:
+            print(str(error), file=sys.stderr)
+            return 2
         sort = args.sort
         time_filter = args.time_filter
         max_pages_per_query = args.max_pages_per_query
@@ -996,6 +1119,7 @@ def main() -> int:
         skip_comments = args.skip_comments
         skip_morechildren = args.skip_morechildren
         more_batch_size = args.more_batch_size
+        author_comments_only = args.author_comments_only
 
     if not query_specs:
         print("No queries to run. Remove --no-default-queries or pass --query.", file=sys.stderr)
@@ -1015,6 +1139,7 @@ def main() -> int:
         "skip_comments": skip_comments,
         "skip_morechildren": skip_morechildren,
         "more_batch_size": more_batch_size,
+        "author_comments_only": author_comments_only,
     }
     write_json(out_dir / RUN_STATE_FILE, state_payload)
 
@@ -1033,14 +1158,18 @@ def main() -> int:
             flush=True,
         )
     else:
-        posts_by_id, search_pages = search_posts(
-            query_specs=query_specs,
-            user_agent=args.user_agent,
-            sort=sort,
-            time_filter=time_filter,
-            max_pages_per_query=max_pages_per_query,
-            delay_seconds=args.search_delay_seconds,
-        )
+        try:
+            posts_by_id, search_pages = search_posts(
+                query_specs=query_specs,
+                client=client,
+                sort=sort,
+                time_filter=time_filter,
+                max_pages_per_query=max_pages_per_query,
+                delay_seconds=args.search_delay_seconds,
+            )
+        except RuntimeError as error:
+            print(f"Search failed: {error}", file=sys.stderr)
+            return 3
 
         records = sorted(
             posts_by_id.values(),
@@ -1101,10 +1230,12 @@ def main() -> int:
             try:
                 raw_comments, comment_log = collect_comments(
                     post_id=post_id,
-                    user_agent=args.user_agent,
+                    client=client,
                     delay_seconds=args.comment_delay_seconds,
                     more_batch_size=more_batch_size,
-                    expand_morechildren=not skip_morechildren,
+                    expand_morechildren=(
+                        not skip_morechildren and not author_comments_only
+                    ),
                 )
                 normalized_comments = [
                     normalize_comment(
@@ -1119,6 +1250,8 @@ def main() -> int:
                 author_comments = [
                     row for row in normalized_comments if row["is_author_comment"]
                 ]
+                if author_comments_only:
+                    normalized_comments = author_comments
                 post_comment_stats[post_id] = {
                     "comments_collected": len(normalized_comments),
                     "author_comments_collected": len(author_comments),
@@ -1213,7 +1346,8 @@ def main() -> int:
         "started_at_utc": started_at_utc,
         "retrieved_at_utc": retrieved_at_utc,
         "finished_at_utc": utc_now().isoformat(),
-        "source": "Reddit public search and comments JSON endpoints",
+        "source": "Reddit search and comments JSON endpoints",
+        "auth_mode": client.auth_mode,
         "resumed": args.resume,
         "query_specs": query_specs,
         "sort": sort,
@@ -1223,7 +1357,11 @@ def main() -> int:
         "search_delay_seconds": args.search_delay_seconds,
         "comment_delay_seconds": args.comment_delay_seconds,
         "more_batch_size": args.more_batch_size,
-        "skip_morechildren": args.skip_morechildren,
+        "skip_morechildren": skip_morechildren,
+        "author_comments_only": author_comments_only,
+        "comments_scope": "author_only" if author_comments_only else "all_comments",
+        "query_csvs": args.query_csv,
+        "query_set": args.query_set,
         "retry_errors": args.retry_errors,
         "post_count": len(post_rows),
         "comment_count": comment_count,
@@ -1254,6 +1392,8 @@ def main() -> int:
             "Queries are exact phrase searches; Reddit wildcard-style phrases are expanded explicitly.",
             "Post up/downvotes are estimates derived from score and upvote_ratio because Reddit does not expose exact up/downvote counts.",
             "author_comments.csv contains comments where Reddit marked is_submitter or the comment author matches the post author.",
+            "With author_comments_only, comments.csv holds only post-author comments, morechildren expansion is skipped, and a few author replies buried in collapsed chains can be missed. comment_fetch_log.jsonl still records the full fetched tree size in collected_comment_count.",
+            "matched_categories, matched_target_terms, and matched_templates are populated only for phrases loaded from a --query-csv keyword file.",
         ],
     }
     write_json(out_dir / "manifest.json", manifest)
