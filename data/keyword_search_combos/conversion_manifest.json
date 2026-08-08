@@ -1,0 +1,92 @@
+{
+  "source_workbook": "keyword_search_combos_first_person_by_threat_model.xlsx",
+  "converter": "xlsx_to_csv.py",
+  "converted_at_utc": "2026-08-08T05:30:57.257880+00:00",
+  "out_dir": "data/keyword_search_combos",
+  "sheet_count": 6,
+  "total_data_rows": 15772,
+  "sheets": [
+    {
+      "sheet_name": "All first person searches",
+      "sheet_state": "visible",
+      "csv": "all_first_person_searches.csv",
+      "row_count": 7887,
+      "data_row_count": 7886,
+      "column_count": 1,
+      "header": [
+        "Search Phrase"
+      ]
+    },
+    {
+      "sheet_name": "General",
+      "sheet_state": "visible",
+      "csv": "general.csv",
+      "row_count": 70,
+      "data_row_count": 69,
+      "column_count": 3,
+      "header": [
+        "Category",
+        "Template",
+        "Search Phrase"
+      ]
+    },
+    {
+      "sheet_name": "Institutional Threats",
+      "sheet_state": "visible",
+      "csv": "institutional_threats.csv",
+      "row_count": 1249,
+      "data_row_count": 1248,
+      "column_count": 3,
+      "header": [
+        "Target Term",
+        "Template",
+        "Search Phrase"
+      ]
+    },
+    {
+      "sheet_name": "Organizational Threats",
+      "sheet_state": "visible",
+      "csv": "organizational_threats.csv",
+      "row_count": 2113,
+      "data_row_count": 2112,
+      "column_count": 4,
+      "header": [
+        "Category",
+        "Target Term",
+        "Template",
+        "Search Phrase"
+      ]
+    },
+    {
+      "sheet_name": "Ambiguous Others",
+      "sheet_state": "visible",
+      "csv": "ambiguous_others.csv",
+      "row_count": 234,
+      "data_row_count": 233,
+      "column_count": 3,
+      "header": [
+        "Target Term",
+        "Template",
+        "Search Phrase"
+      ]
+    },
+    {
+      "sheet_name": "Interpersonal",
+      "sheet_state": "visible",
+      "csv": "interpersonal.csv",
+      "row_count": 4225,
+      "data_row_count": 4224,
+      "column_count": 4,
+      "header": [
+        "Category",
+        "Target Term",
+        "Template",
+        "Search Phrase"
+      ]
+    }
+  ],
+  "notes": [
+    "One CSV per worksheet, written in workbook order with the original header row.",
+    "Cell values are taken as stored text; no formatting or formulas are applied."
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "generator": "build_third_person_queries.py",
+  "generated_at_utc": "2026-08-08T05:44:36.710945+00:00",
+  "source_sheets": [
+    "ambiguous_others.csv",
+    "general.csv",
+    "institutional_threats.csv",
+    "interpersonal.csv",
+    "organizational_threats.csv"
+  ],
+  "source_phrase_count": 7886,
+  "observer": {
+    "csv": "third_person_observer.csv",
+    "phrase_count": 21564,
+    "pronouns": [
+      "her",
+      "his",
+      "their"
+    ],
+    "skipped_no_first_person_marker": 698
+  },
+  "finder": {
+    "csv": "third_person_finder.csv",
+    "phrase_count": 3894,
+    "target_terms": 66,
+    "object_templates": [
+      "I found [poss] [obj]",
+      "Found [poss] [obj]",
+      "I saw [poss] [obj]",
+      "I recognized [poss] [obj]",
+      "I came across [poss] [obj]",
+      "I stumbled across [poss] [obj]",
+      "Is this [poss] [obj]"
+    ],
+    "target_templates": [
+      "I found out [subj_lower] posts on Reddit",
+      "I found out [subj_lower] is on Reddit",
+      "I think [subj_lower] is a redditor"
+    ],
+    "objects": [
+      "post",
+      "posts",
+      "comment",
+      "account",
+      "Reddit",
+      "profile",
+      "thread",
+      "username"
+    ],
+    "institutional_targets_included": false
+  },
+  "notes": [
+    "Observer phrases swap first-person pronouns in the workbook phrases; phrases with no first-person marker are skipped because the swap is a no-op.",
+    "Finder phrases use each target term's subject form as learned from the workbook's 'found my [obj]' rows.",
+    "Institutional targets are excluded from finder voice by default."
+  ]
+}

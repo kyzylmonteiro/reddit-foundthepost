@@ -1,0 +1,234 @@
+Target Term,Template,Search Phrase
+,got doxxed (no term),My post got doxxed
+,got doxxed (no term),My Reddit got doxxed
+,got doxxed (no term),My account got doxxed
+,got doxxed (no term),My comment got doxxed
+,got doxxed (no term),My thread got doxxed
+someone,shared my [obj],Someone shared my post
+someone,shared my [obj],Someone shared my Reddit
+someone,shared my [obj],Someone shared my account
+someone,shared my [obj],Someone shared my comment
+someone,shared my [obj],Someone shared my thread
+someone,saw my [obj],Someone saw my post
+someone,saw my [obj],Someone saw my posts
+someone,saw my [obj],Someone saw my Reddit
+someone,saw my [obj],Someone saw my account
+someone,saw my [obj],Someone saw my page
+someone,saw my [obj],Someone saw my profile
+someone,saw my [obj],Someone saw my comment
+someone,saw my [obj],Someone saw my comments
+someone,exposed my [obj],Someone exposed my post
+someone,exposed my [obj],Someone exposed my posts
+someone,exposed my [obj],Someone exposed my Reddit
+someone,exposed my [obj],Someone exposed my account
+someone,exposed my [obj],Someone exposed my page
+someone,exposed my [obj],Someone exposed my profile
+someone,exposed my [obj],Someone exposed my comment
+someone,exposed my [obj],Someone exposed my comments
+someone,knows about my [obj],Someone knows about my post
+someone,knows about my [obj],Someone knows about my posts
+someone,knows about my [obj],Someone knows about my Reddit
+someone,knows about my [obj],Someone knows about my account
+someone,knows about my [obj],Someone knows about my page
+someone,knows about my [obj],Someone knows about my profile
+someone,knows about my [obj],Someone knows about my comment
+someone,knows about my [obj],Someone knows about my comments
+someone,knows my [obj],Someone knows my username
+someone,knows my [obj],Someone knows my account
+someone,knows my [obj],Someone knows my Reddit
+someone,found the [obj],Someone found the thread
+someone,found the [obj],Someone found the post
+someone,found the [obj],Someone found the posts
+someone,found the [obj],Someone found the comment
+someone,found the [obj],Someone found the comments
+someone,sent this [obj] to,Someone sent this thread to
+someone,sent this [obj] to,Someone sent this post to
+someone,came across [det] [obj],Someone came across the post
+someone,came across [det] [obj],Someone came across the Reddit
+someone,came across [det] [obj],Someone came across the account
+someone,came across [det] [obj],Someone came across the comment
+someone,came across [det] [obj],Someone came across the thread
+someone,came across [det] [obj],Someone came across my post
+someone,came across [det] [obj],Someone came across my Reddit
+someone,came across [det] [obj],Someone came across my account
+someone,came across [det] [obj],Someone came across my comment
+someone,came across [det] [obj],Someone came across my thread
+someone,came across [det] [obj],Someone came across this post
+someone,came across [det] [obj],Someone came across this Reddit
+someone,came across [det] [obj],Someone came across this account
+someone,came across [det] [obj],Someone came across this comment
+someone,came across [det] [obj],Someone came across this thread
+someone,stumbled across [det] [obj],Someone stumbled across the post
+someone,stumbled across [det] [obj],Someone stumbled across the Reddit
+someone,stumbled across [det] [obj],Someone stumbled across the account
+someone,stumbled across [det] [obj],Someone stumbled across the thread
+someone,stumbled across [det] [obj],Someone stumbled across the comment
+someone,stumbled across [det] [obj],Someone stumbled across my post
+someone,stumbled across [det] [obj],Someone stumbled across my Reddit
+someone,stumbled across [det] [obj],Someone stumbled across my account
+someone,stumbled across [det] [obj],Someone stumbled across my thread
+someone,stumbled across [det] [obj],Someone stumbled across my comment
+someone,stumbled across [det] [obj],Someone stumbled across this post
+someone,stumbled across [det] [obj],Someone stumbled across this Reddit
+someone,stumbled across [det] [obj],Someone stumbled across this account
+someone,stumbled across [det] [obj],Someone stumbled across this thread
+someone,stumbled across [det] [obj],Someone stumbled across this comment
+someone,found out I [obj],Someone found out I posted
+someone,found out I [obj],Someone found out I made this
+someone,traced my [obj],Someone traced my post
+someone,traced my [obj],Someone traced my Reddit
+someone,traced my [obj],Someone traced my account
+someone,traced my [obj],Someone traced my comment
+someone,traced my [obj],Someone traced my thread
+stranger,shared my [obj],A stranger shared my post
+stranger,shared my [obj],A stranger shared my Reddit
+stranger,shared my [obj],A stranger shared my account
+stranger,shared my [obj],A stranger shared my comment
+stranger,shared my [obj],A stranger shared my thread
+stranger,saw my [obj],A stranger saw my post
+stranger,saw my [obj],A stranger saw my posts
+stranger,saw my [obj],A stranger saw my Reddit
+stranger,saw my [obj],A stranger saw my account
+stranger,saw my [obj],A stranger saw my page
+stranger,saw my [obj],A stranger saw my profile
+stranger,saw my [obj],A stranger saw my comment
+stranger,saw my [obj],A stranger saw my comments
+stranger,exposed my [obj],A stranger exposed my post
+stranger,exposed my [obj],A stranger exposed my posts
+stranger,exposed my [obj],A stranger exposed my Reddit
+stranger,exposed my [obj],A stranger exposed my account
+stranger,exposed my [obj],A stranger exposed my page
+stranger,exposed my [obj],A stranger exposed my profile
+stranger,exposed my [obj],A stranger exposed my comment
+stranger,exposed my [obj],A stranger exposed my comments
+stranger,knows about my [obj],A stranger knows about my post
+stranger,knows about my [obj],A stranger knows about my posts
+stranger,knows about my [obj],A stranger knows about my Reddit
+stranger,knows about my [obj],A stranger knows about my account
+stranger,knows about my [obj],A stranger knows about my page
+stranger,knows about my [obj],A stranger knows about my profile
+stranger,knows about my [obj],A stranger knows about my comment
+stranger,knows about my [obj],A stranger knows about my comments
+stranger,knows my [obj],A stranger knows my username
+stranger,knows my [obj],A stranger knows my account
+stranger,knows my [obj],A stranger knows my Reddit
+stranger,found the [obj],A stranger found the thread
+stranger,found the [obj],A stranger found the post
+stranger,found the [obj],A stranger found the posts
+stranger,found the [obj],A stranger found the comment
+stranger,found the [obj],A stranger found the comments
+stranger,sent this [obj] to,A stranger sent this thread to
+stranger,sent this [obj] to,A stranger sent this post to
+stranger,came across [det] [obj],A stranger came across the post
+stranger,came across [det] [obj],A stranger came across the Reddit
+stranger,came across [det] [obj],A stranger came across the account
+stranger,came across [det] [obj],A stranger came across the comment
+stranger,came across [det] [obj],A stranger came across the thread
+stranger,came across [det] [obj],A stranger came across my post
+stranger,came across [det] [obj],A stranger came across my Reddit
+stranger,came across [det] [obj],A stranger came across my account
+stranger,came across [det] [obj],A stranger came across my comment
+stranger,came across [det] [obj],A stranger came across my thread
+stranger,came across [det] [obj],A stranger came across this post
+stranger,came across [det] [obj],A stranger came across this Reddit
+stranger,came across [det] [obj],A stranger came across this account
+stranger,came across [det] [obj],A stranger came across this comment
+stranger,came across [det] [obj],A stranger came across this thread
+stranger,stumbled across [det] [obj],A stranger stumbled across the post
+stranger,stumbled across [det] [obj],A stranger stumbled across the Reddit
+stranger,stumbled across [det] [obj],A stranger stumbled across the account
+stranger,stumbled across [det] [obj],A stranger stumbled across the thread
+stranger,stumbled across [det] [obj],A stranger stumbled across the comment
+stranger,stumbled across [det] [obj],A stranger stumbled across my post
+stranger,stumbled across [det] [obj],A stranger stumbled across my Reddit
+stranger,stumbled across [det] [obj],A stranger stumbled across my account
+stranger,stumbled across [det] [obj],A stranger stumbled across my thread
+stranger,stumbled across [det] [obj],A stranger stumbled across my comment
+stranger,stumbled across [det] [obj],A stranger stumbled across this post
+stranger,stumbled across [det] [obj],A stranger stumbled across this Reddit
+stranger,stumbled across [det] [obj],A stranger stumbled across this account
+stranger,stumbled across [det] [obj],A stranger stumbled across this thread
+stranger,stumbled across [det] [obj],A stranger stumbled across this comment
+stranger,found out I [obj],A stranger found out I posted
+stranger,found out I [obj],A stranger found out I made this
+stranger,traced my [obj],A stranger traced my post
+stranger,traced my [obj],A stranger traced my Reddit
+stranger,traced my [obj],A stranger traced my account
+stranger,traced my [obj],A stranger traced my comment
+stranger,traced my [obj],A stranger traced my thread
+redditor,shared my [obj],A redditor shared my post
+redditor,shared my [obj],A redditor shared my Reddit
+redditor,shared my [obj],A redditor shared my account
+redditor,shared my [obj],A redditor shared my comment
+redditor,shared my [obj],A redditor shared my thread
+redditor,saw my [obj],A redditor saw my post
+redditor,saw my [obj],A redditor saw my posts
+redditor,saw my [obj],A redditor saw my Reddit
+redditor,saw my [obj],A redditor saw my account
+redditor,saw my [obj],A redditor saw my page
+redditor,saw my [obj],A redditor saw my profile
+redditor,saw my [obj],A redditor saw my comment
+redditor,saw my [obj],A redditor saw my comments
+redditor,exposed my [obj],A redditor exposed my post
+redditor,exposed my [obj],A redditor exposed my posts
+redditor,exposed my [obj],A redditor exposed my Reddit
+redditor,exposed my [obj],A redditor exposed my account
+redditor,exposed my [obj],A redditor exposed my page
+redditor,exposed my [obj],A redditor exposed my profile
+redditor,exposed my [obj],A redditor exposed my comment
+redditor,exposed my [obj],A redditor exposed my comments
+redditor,knows about my [obj],A redditor knows about my post
+redditor,knows about my [obj],A redditor knows about my posts
+redditor,knows about my [obj],A redditor knows about my Reddit
+redditor,knows about my [obj],A redditor knows about my account
+redditor,knows about my [obj],A redditor knows about my page
+redditor,knows about my [obj],A redditor knows about my profile
+redditor,knows about my [obj],A redditor knows about my comment
+redditor,knows about my [obj],A redditor knows about my comments
+redditor,knows my [obj],A redditor knows my username
+redditor,knows my [obj],A redditor knows my account
+redditor,knows my [obj],A redditor knows my Reddit
+redditor,found the [obj],A redditor found the thread
+redditor,found the [obj],A redditor found the post
+redditor,found the [obj],A redditor found the posts
+redditor,found the [obj],A redditor found the comment
+redditor,found the [obj],A redditor found the comments
+redditor,sent this [obj] to,A redditor sent this thread to
+redditor,sent this [obj] to,A redditor sent this post to
+redditor,came across [det] [obj],A redditor came across the post
+redditor,came across [det] [obj],A redditor came across the Reddit
+redditor,came across [det] [obj],A redditor came across the account
+redditor,came across [det] [obj],A redditor came across the comment
+redditor,came across [det] [obj],A redditor came across the thread
+redditor,came across [det] [obj],A redditor came across my post
+redditor,came across [det] [obj],A redditor came across my Reddit
+redditor,came across [det] [obj],A redditor came across my account
+redditor,came across [det] [obj],A redditor came across my comment
+redditor,came across [det] [obj],A redditor came across my thread
+redditor,came across [det] [obj],A redditor came across this post
+redditor,came across [det] [obj],A redditor came across this Reddit
+redditor,came across [det] [obj],A redditor came across this account
+redditor,came across [det] [obj],A redditor came across this comment
+redditor,came across [det] [obj],A redditor came across this thread
+redditor,stumbled across [det] [obj],A redditor stumbled across the post
+redditor,stumbled across [det] [obj],A redditor stumbled across the Reddit
+redditor,stumbled across [det] [obj],A redditor stumbled across the account
+redditor,stumbled across [det] [obj],A redditor stumbled across the thread
+redditor,stumbled across [det] [obj],A redditor stumbled across the comment
+redditor,stumbled across [det] [obj],A redditor stumbled across my post
+redditor,stumbled across [det] [obj],A redditor stumbled across my Reddit
+redditor,stumbled across [det] [obj],A redditor stumbled across my account
+redditor,stumbled across [det] [obj],A redditor stumbled across my thread
+redditor,stumbled across [det] [obj],A redditor stumbled across my comment
+redditor,stumbled across [det] [obj],A redditor stumbled across this post
+redditor,stumbled across [det] [obj],A redditor stumbled across this Reddit
+redditor,stumbled across [det] [obj],A redditor stumbled across this account
+redditor,stumbled across [det] [obj],A redditor stumbled across this thread
+redditor,stumbled across [det] [obj],A redditor stumbled across this comment
+redditor,found out I [obj],A redditor found out I posted
+redditor,found out I [obj],A redditor found out I made this
+redditor,traced my [obj],A redditor traced my post
+redditor,traced my [obj],A redditor traced my Reddit
+redditor,traced my [obj],A redditor traced my account
+redditor,traced my [obj],A redditor traced my comment
+redditor,traced my [obj],A redditor traced my thread
