@@ -11,20 +11,58 @@ candidate phrases, deduplicates posts across queries, then fetches each post's
 comment tree so we can inspect both the full discussion and the original
 poster's own replies.
 
+## Authentication Is Now Required
+
+Reddit answers **HTTP 403 Blocked** for unauthenticated requests to its `.json`
+endpoints. The script therefore runs over OAuth against `oauth.reddit.com`:
+
+```bash
+export REDDIT_CLIENT_ID=...
+export REDDIT_CLIENT_SECRET=...
+```
+
+Create a "script" app at <https://www.reddit.com/prefs/apps> to get them, or
+pass `--client-id` / `--client-secret`. Without credentials the script warns at
+startup and exits 3 on the first blocked request. `manifest.json` records which
+mode a run used in `auth_mode`.
+
 ## Caveats
 
 Reddit search is a discovery method, not a complete corpus. Results can vary
 over time as posts are edited, removed, deleted, rescored, or newly indexed.
 Broad phrases like `"found out"` are expected to be noisy; they are included
 because they may recover cases that do not explicitly say "found my post".
-Downvotes are not directly exposed by Reddit's public JSON endpoints, so the
-script records `score`, `upvote_ratio`, and estimated up/downvote counts derived
-from those fields.
+Downvotes are not directly exposed by Reddit's JSON endpoints, so the script
+records `score`, `upvote_ratio`, and estimated up/downvote counts derived from
+those fields.
 
 Wildcard searches like `Reddit*` are represented as explicit phrase expansions
-because Reddit's public search behavior for wildcard syntax is inconsistent.
+because Reddit's search behavior for wildcard syntax is inconsistent.
 
-## Keyword Groups
+## Keyword Sources
+
+Two ways to supply phrases:
+
+1. **Keyword CSVs** (`--query-csv`), the current approach. 33,344 phrases across
+   three voices, documented in
+   [`data/keyword_search_combos/README.md`](data/keyword_search_combos/README.md).
+   Any CSV with a `Search Phrase` column works; optional `Category`,
+   `Target Term`, and `Template` columns are carried into the output tables as
+   `matched_categories`, `matched_target_terms`, and `matched_templates`. Label
+   a set with `--query-set`, which lands in `matched_query_groups`.
+2. **The built-in list** below, 20 phrases, used when no `--query-csv` is given.
+   Pass `--no-default-queries` to suppress it.
+
+## Comment Scope
+
+`--author-comments-only` keeps just the post author's comments and skips the
+`morechildren` expansion, which is where most collection time goes. It is still
+one comments request per post. Tradeoff: author replies buried in collapsed
+"load more" chains are missed. `comment_fetch_log.jsonl` still records the full
+fetched tree size in `collected_comment_count`, so what was skipped stays
+visible.
+
+## Built-in Keyword Groups
 
 High-precision phrases:
 
@@ -128,31 +166,16 @@ Important rehydration/provenance columns:
 - `search_rank_all` is JSON listing every query that surfaced the post and its
   rank within that query's result pages.
 
-## Latest Local Run
+## Current Runs
 
-Latest full local scrape:
+Set 2 runs live under `data/set2_broad_keyword_search/`, one directory per
+voice, each holding a dated `YYYYMMDD_broad_search_results/` folder. See
+[`data/set2_broad_keyword_search/README.md`](data/set2_broad_keyword_search/README.md)
+for the exact commands.
 
-`data/broad_identity_search/20260528_broad_search_results/`
-
-Artifacts from that run:
-
-- [`review_posts_for_annotation.csv`](data/broad_identity_search/20260528_broad_search_results/review_posts_for_annotation.csv):
-  human annotation table with coding columns at the front.
-- [`review_posts.csv`](data/broad_identity_search/20260528_broad_search_results/review_posts.csv):
-  Google Sheets/manual review table, one row per candidate post.
-- [`posts.csv`](data/broad_identity_search/20260528_broad_search_results/posts.csv):
-  post-level analysis table, one row per candidate post.
-- [`comments.csv`](data/broad_identity_search/20260528_broad_search_results/comments.csv):
-  comment-level analysis table, one row per collected comment.
-- [`author_comments.csv`](data/broad_identity_search/20260528_broad_search_results/author_comments.csv):
-  subset of `comments.csv` where the commenter is the original post author.
-- [`manifest.json`](data/broad_identity_search/20260528_broad_search_results/manifest.json):
-  run parameters, schemas, counts, and caveats.
-- [`comment_fetch_log.jsonl`](data/broad_identity_search/20260528_broad_search_results/comment_fetch_log.jsonl):
-  per-post comment fetch status.
-- [`search_records.jsonl`](data/broad_identity_search/20260528_broad_search_results/search_records.jsonl):
-  raw saved Reddit search records for later extraction of additional post
-  metadata.
+An earlier exploratory scrape at
+`data/broad_identity_search/20260528_broad_search_results/` is local-only and
+not present in a fresh clone.
 
 Join map:
 

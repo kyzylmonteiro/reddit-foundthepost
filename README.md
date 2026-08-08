@@ -3,18 +3,53 @@
 Public Reddit post/comment collection for content analysis of situations where
 someone's Reddit post or account is discovered by someone else.
 
+## Reddit Now Requires OAuth
+
+Reddit answers **HTTP 403 Blocked** for unauthenticated requests to its public
+`.json` endpoints. Every collection script in this repo used those endpoints, so
+new collection needs OAuth credentials from a "script" app at
+<https://www.reddit.com/prefs/apps>:
+
+```bash
+export REDDIT_CLIENT_ID=...
+export REDDIT_CLIENT_SECRET=...
+```
+
+All four collection scripts share one OAuth client, `scripts/reddit_client.py`,
+and read those two variables. Credentials are never written into a manifest;
+each manifest records only `auth_mode`. Already-collected data is unaffected.
+
+Check credentials before a long run:
+
+```bash
+python3 scripts/check_reddit_auth.py
+```
+
+It fetches a token, makes one real search, and reports the rate limit Reddit
+returns.
+
+## Data Sets
+
+| Set | What | Status |
+| --- | --- | --- |
+| [set 1](data/set1_foundthepost_subreddit/) | `r/foundthepost` subreddit snapshot | collected |
+| [set 2](data/set2_broad_keyword_search/) | Reddit-wide keyword search, 3 voices | pending credentials |
+| [keywords](data/keyword_search_combos/) | 33,344 search phrases by threat model | ready |
+
 ## Start Here
 
-If you are new to the repo, read files in this order:
-
-1. This `README.md` for the project map and what is already included.
-2. [`data/20260527_foundthepost_snapshot/README.md`](data/20260527_foundthepost_snapshot/README.md)
+1. This `README.md` for the project map.
+2. [`data/set1_foundthepost_subreddit/20260527_foundthepost_snapshot/README.md`](data/set1_foundthepost_subreddit/20260527_foundthepost_snapshot/README.md)
    for the tracked `r/foundthepost` snapshot and its analysis-ready files.
-3. [`BROAD_REDDIT_SEARCH.md`](BROAD_REDDIT_SEARCH.md) for the Reddit-wide
-   keyword search, the larger local scrape, output tables, and join keys.
-4. [`ANNOTATION_GUIDE.md`](ANNOTATION_GUIDE.md) if you are preparing or using
+3. [`data/keyword_search_combos/README.md`](data/keyword_search_combos/README.md)
+   for the keyword sets and what each CSV is for.
+4. [`data/set2_broad_keyword_search/README.md`](data/set2_broad_keyword_search/README.md)
+   for the broad-search runs and their commands.
+5. [`BROAD_REDDIT_SEARCH.md`](BROAD_REDDIT_SEARCH.md) for the search collector,
+   output tables, and join keys.
+6. [`ANNOTATION_GUIDE.md`](ANNOTATION_GUIDE.md) if you are preparing or using
    the human annotation sheet.
-5. [`REPRODUCIBILITY.md`](REPRODUCIBILITY.md) only when rerunning the
+7. [`REPRODUCIBILITY.md`](REPRODUCIBILITY.md) only when rerunning the
    `r/foundthepost` collection or checking exact collection commands.
 
 You should not need to open every script to understand the data. The scripts
@@ -23,56 +58,57 @@ the main documentation for analysis.
 
 ## What Is In This Repo
 
-- A tracked `r/foundthepost` snapshot with 80 public subreddit submissions and
-  66,690 normalized comments from linked source posts.
-- Reproducible Python scripts for collecting the subreddit snapshot and source
-  comments.
-- A Reddit-wide keyword-search collector for finding broader identity-discovery
-  cases outside `r/foundthepost`.
+- **Set 1**: a tracked `r/foundthepost` snapshot with 80 public subreddit
+  submissions and 66,690 normalized comments from linked source posts.
+- **Set 2**: a Reddit-wide keyword search across all of Reddit, run separately
+  for first-person, third-person observer, and finder voices. Author comments
+  only.
+- **Keyword sets**: 33,344 search phrases organized by threat model, converted
+  from the source workbook and extended with generated third-person variants.
+- Reproducible Python scripts for all of the above.
 
 ## What Is Local Only
 
-The full Reddit-wide scrape is large, so it is ignored by git and is not part
-of a normal GitHub push. On this machine, the latest full local run is:
+Broad-search output is large, so per-post comment checkpoints and saved raw
+search records are ignored by git. The analysis tables are tracked.
 
-`data/broad_identity_search/20260528_broad_search_results/`
-
-Start with its `review_posts.csv` for manual coding in Google Sheets. See
-[`BROAD_REDDIT_SEARCH.md`](BROAD_REDDIT_SEARCH.md) for links, table structure,
-and join keys. For human annotators, use `review_posts_for_annotation.csv`
-instead; it keeps the coding columns at the front so annotators can update the
-sheet without reorganizing it.
+An earlier exploratory scrape lived at
+`data/broad_identity_search/20260528_broad_search_results/` and is not part of
+this clone. Its annotation sheet, `review_posts_for_annotation.csv`, was
+produced outside the repo; no script in the repo generates it. See
+[`ANNOTATION_GUIDE.md`](ANNOTATION_GUIDE.md).
 
 If you are receiving this repo with a Box link, use the Box file as the exact
-dataset for annotation. Rerunning the Reddit-wide script reproduces the
-collection method and output schema, but Reddit search/results can change, so
-a fresh run should be treated as a comparable new scrape rather than an exact
-copy of the Box upload.
+dataset for annotation. Rerunning a search reproduces the collection method and
+output schema, but Reddit search/results can change, so a fresh run should be
+treated as a comparable new scrape rather than an exact copy of the Box upload.
 
 ## Reproduce
 
-Run the full live collection workflow with:
+Set 2, the Reddit-wide keyword search — see
+[`data/set2_broad_keyword_search/README.md`](data/set2_broad_keyword_search/README.md)
+for the three run commands.
+
+Set 1, the `r/foundthepost` collection:
 
 ```bash
 python3 scripts/run_full_collection.py
 ```
 
 See `REPRODUCIBILITY.md` for the two-step commands, resume behavior, and live
-data caveats.
-
-For broader Reddit-wide discovery outside `r/foundthepost`, see
-`BROAD_REDDIT_SEARCH.md` and `scripts/search_identity_discovery.py`.
+data caveats. Note this path currently fails against Reddit's 403 on anonymous
+requests.
 
 ## Current Snapshot
 
-Latest enriched snapshot:
+Set 1's enriched snapshot:
 
-`data/20260527_foundthepost_snapshot/`
+`data/set1_foundthepost_subreddit/20260527_foundthepost_snapshot/`
 
 It contains 80 public submissions collected from Reddit's unauthenticated
-`new.json` listing on 2026-05-27. Reddit returned one page with no pagination
-token, so this appears to cover the currently visible subreddit submission
-history.
+`new.json` listing on 2026-05-27, back when that endpoint was open. Reddit
+returned one page with no pagination token, so this appears to cover the
+currently visible subreddit submission history.
 
 Source-post comments were also collected for 81 unique linked source threads.
 The public Reddit JSON endpoints returned comments for 80 of those threads,
@@ -80,14 +116,26 @@ yielding 66,690 normalized source-comment records.
 
 ## Files
 
+Scripts:
+
+- `scripts/reddit_client.py` is the shared OAuth Reddit client used by every
+  collector.
+- `scripts/check_reddit_auth.py` verifies credentials and reports rate limits.
 - `scripts/collect_reddit_posts.py` collects public submissions and writes a
-  date-stamped snapshot under `data/`.
+  date-stamped snapshot under `data/`. Set 1 only.
 - `scripts/collect_source_comments.py` collects comments from source Reddit
-  posts linked by the normalized post table.
+  posts linked by the normalized post table. Set 1 only.
 - `scripts/run_full_collection.py` runs both collection steps and writes a
   `collection_run_manifest.json` with commands and parameters.
 - `scripts/search_identity_discovery.py` searches Reddit-wide for identity
-  discovery keywords and writes post/comment CSVs.
+  discovery keywords and writes post/comment CSVs. Set 2. Supports OAuth,
+  keyword CSVs via `--query-csv`, and `--author-comments-only`.
+- `scripts/xlsx_to_csv.py` converts an `.xlsx` workbook to one CSV per sheet.
+- `scripts/build_third_person_queries.py` generates the third-person keyword
+  sets from the first-person workbook.
+
+Set 1 snapshot files:
+
 - `posts_normalized.csv` is the analysis-friendly table.
 - `posts_normalized.jsonl` is the same normalized data as newline-delimited
   JSON.
@@ -103,7 +151,9 @@ Use `review_posts.csv` for Google Sheets/manual coding: one row per candidate
 post, compact text excerpts, links, matched keywords, scores, and blank review
 columns. `posts.csv` keeps the richer post metadata and rehydration IDs.
 `comments.csv` contains every collected comment; `author_comments.csv` is the
-OP-only subset for fast follow-up. `manifest.json`, `search_pages.json`, and
+OP-only subset for fast follow-up. Under `--author-comments-only` both files
+hold only the post author's comments, and `manifest.json` records
+`comments_scope: author_only`. `manifest.json`, `search_pages.json`, and
 `comment_fetch_log.jsonl` explain exactly how the run was made and what Reddit
 returned. If a local broad scrape is interrupted, rerun
 `python3 scripts/search_identity_discovery.py --resume`; the script uses

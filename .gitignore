@@ -14,5 +14,10 @@ data/**/source_comments/source_comments_raw.jsonl
 # intentionally if it becomes part of the analysis corpus.
 data/broad_identity_search/
 
+# Broad-search resume state and per-post checkpoints. Bulky, and fully
+# regenerable by rerunning with --resume. The analysis tables stay tracked.
+data/**/comment_checkpoints/
+data/**/search_records.jsonl
+
 # Local Box upload bundles are generated from tracked or ignored data.
 data/*.zip

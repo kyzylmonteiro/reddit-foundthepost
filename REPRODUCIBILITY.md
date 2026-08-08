@@ -1,6 +1,19 @@
 # Reproducibility
 
-This project uses live Reddit public JSON endpoints. The scripts reproduce the
+This document covers set 1, the `r/foundthepost` collection. For set 2, the
+Reddit-wide keyword search, see
+[`data/set2_broad_keyword_search/README.md`](data/set2_broad_keyword_search/README.md).
+
+> **OAuth credentials are required.** Reddit answers HTTP 403 Blocked for
+> unauthenticated requests to its `.json` endpoints. Export `REDDIT_CLIENT_ID`
+> and `REDDIT_CLIENT_SECRET` before running anything below; `run_full_collection.py`
+> passes them through to both collectors via the environment. Verify them first
+> with `python3 scripts/check_reddit_auth.py`.
+>
+> The original snapshot was collected in May 2026, before Reddit closed anonymous
+> access, so its manifests predate the `auth_mode` field.
+
+This project uses live Reddit JSON endpoints. The scripts reproduce the
 collection method and output schema, but future runs may not be bit-for-bit
 identical because Reddit content can be edited, deleted, removed, made private,
 rescored, or newly added.
@@ -8,7 +21,7 @@ rescored, or newly added.
 For bit-for-bit analysis of the dataset already collected, use the preserved
 snapshot directory:
 
-`data/20260527_foundthepost_snapshot/`
+`data/set1_foundthepost_subreddit/20260527_foundthepost_snapshot/`
 
 ## One-Command Collection
 
