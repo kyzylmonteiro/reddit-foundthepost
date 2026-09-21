@@ -34,6 +34,7 @@ returns.
 | --- | --- | --- |
 | [set 1](data/set1_foundthepost_subreddit/) | `r/foundthepost` subreddit snapshot | collected |
 | [set 2](data/set2_broad_keyword_search/) | Reddit-wide keyword search, 3 voices | pending credentials |
+| [set 3](data/set3_arctic_keyword_search/) | Historical Arctic submissions, first- and third-person literal keyword search | collected; database in release |
 | [keywords](data/keyword_search_combos/) | 33,344 search phrases by threat model | ready |
 
 ## Start Here
@@ -45,11 +46,14 @@ returns.
    for the keyword sets and what each CSV is for.
 4. [`data/set2_broad_keyword_search/README.md`](data/set2_broad_keyword_search/README.md)
    for the broad-search runs and their commands.
-5. [`BROAD_REDDIT_SEARCH.md`](BROAD_REDDIT_SEARCH.md) for the search collector,
+5. [`data/set3_arctic_keyword_search/README.md`](data/set3_arctic_keyword_search/README.md)
+   for the historical post-only dataset, keyword rationale, schema, counts, and
+   [database download](https://github.com/kyzylmonteiro/reddit-foundthepost/releases/tag/set3-arctic-2026-09-20).
+6. [`BROAD_REDDIT_SEARCH.md`](BROAD_REDDIT_SEARCH.md) for the search collector,
    output tables, and join keys.
-6. [`ANNOTATION_GUIDE.md`](ANNOTATION_GUIDE.md) if you are preparing or using
+7. [`ANNOTATION_GUIDE.md`](ANNOTATION_GUIDE.md) if you are preparing or using
    the human annotation sheet.
-7. [`REPRODUCIBILITY.md`](REPRODUCIBILITY.md) only when rerunning the
+8. [`REPRODUCIBILITY.md`](REPRODUCIBILITY.md) only when rerunning the
    `r/foundthepost` collection or checking exact collection commands.
 
 You should not need to open every script to understand the data. The scripts
@@ -63,6 +67,11 @@ the main documentation for analysis.
 - **Set 2**: a Reddit-wide keyword search across all of Reddit, run separately
   for first-person, third-person observer, and finder voices. Author comments
   only.
+- **Set 3**: 2,809,926 matched submissions from 2,533 Arctic Parquet shards
+  (available years 2005–2013, 2017–2019, 2023–February 2026). Posts only,
+  with original title and body, metadata, keyword matches, and extracted Reddit
+  links. The 29,841-phrase CSV is tracked here; the 8.3 GiB SQLite database is
+  [downloadable as a compressed release asset](https://github.com/kyzylmonteiro/reddit-foundthepost/releases/tag/set3-arctic-2026-09-20).
 - **Keyword sets**: 33,344 search phrases organized by threat model, converted
   from the source workbook and extended with generated third-person variants.
 - Reproducible Python scripts for all of the above.
