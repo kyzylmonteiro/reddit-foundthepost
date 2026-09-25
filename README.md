@@ -1,190 +1,122 @@
-# reddit-foundthepost
+# Reddit post and account discovery: Arctic keyword search
 
-Public Reddit post/comment collection for content analysis of situations where
-someone's Reddit post or account is discovered by someone else.
+This repository's primary dataset is **Set 3**: Reddit submissions from
+[`Dk587/arctic`](https://huggingface.co/datasets/Dk587/arctic) whose titles or
+bodies contain phrases about someone discovering, recognizing, tracing, sharing,
+or confronting a person about their Reddit activity. The search produced
+**2,809,926 matched posts**. It includes submissions only, not comments.
 
-## Reddit Now Requires OAuth
+The [Set 3 dataset README](data/set3_arctic_keyword_search/README.md) gives the
+full keyword rationale, field descriptions, SQL examples, and verification
+details. Earlier [Set 1](data/set1_foundthepost_subreddit/20260527_foundthepost_snapshot/README.md)
+and [Set 2](https://github.com/kyzylmonteiro/reddit-foundthepost/tree/set2-broad-keyword-search)
+work remains in the repository; see [Earlier collections](#earlier-collections).
 
-Reddit answers **HTTP 403 Blocked** for unauthenticated requests to its public
-`.json` endpoints. Every collection script in this repo used those endpoints, so
-new collection needs OAuth credentials from a "script" app at
-<https://www.reddit.com/prefs/apps>:
+## Get the data
 
-```bash
-export REDDIT_CLIENT_ID=...
-export REDDIT_CLIENT_SECRET=...
-```
+| File | Contents |
+| --- | --- |
+| [Keyword CSV](data/set3_arctic_keyword_search/keywords_all_perspectives.csv) | 29,841 first- and third-person search phrases, with perspective and provenance |
+| [SQLite database download](https://github.com/kyzylmonteiro/reddit-foundthepost/releases/download/set3-arctic-2026-09-20/arctic_keyword_matches.sqlite.zst) | Matched posts, title and body, metadata, keyword matches, extracted Reddit links, and source-shard audit |
 
-All four collection scripts share one OAuth client, `scripts/reddit_client.py`,
-and read those two variables. Credentials are never written into a manifest;
-each manifest records only `auth_mode`. Already-collected data is unaffected.
-
-Check credentials before a long run:
-
-```bash
-python3 scripts/check_reddit_auth.py
-```
-
-It fetches a token, makes one real search, and reports the rate limit Reddit
-returns.
-
-## Data Sets
-
-| Set | What | Status |
-| --- | --- | --- |
-| [set 1](data/set1_foundthepost_subreddit/) | `r/foundthepost` subreddit snapshot | collected |
-| [set 2](https://github.com/kyzylmonteiro/reddit-foundthepost/tree/set2-broad-keyword-search) | Reddit-wide keyword search, 3 voices | pending credentials |
-| [set 3](data/set3_arctic_keyword_search/) | Historical Arctic submissions, first- and third-person literal keyword search | collected; database in release |
-| [keywords](data/keyword_search_combos/) | 33,344 search phrases by threat model | ready |
-
-`main` is the cumulative project branch with Sets 1–3. The
-[Set 2 branch](https://github.com/kyzylmonteiro/reddit-foundthepost/tree/set2-broad-keyword-search)
-preserves the project before Set 3 was added; the
-[Set 3 branch](https://github.com/kyzylmonteiro/reddit-foundthepost/tree/set3-arctic-keyword-search)
-preserves the initial Arctic publication. Set 3's SQLite database is hosted as
-a release asset, linked from its dataset README.
-
-## Start Here
-
-1. This `README.md` for the project map.
-2. [`data/set1_foundthepost_subreddit/20260527_foundthepost_snapshot/README.md`](data/set1_foundthepost_subreddit/20260527_foundthepost_snapshot/README.md)
-   for the tracked `r/foundthepost` snapshot and its analysis-ready files.
-3. [`data/keyword_search_combos/README.md`](data/keyword_search_combos/README.md)
-   for the keyword sets and what each CSV is for.
-4. [Set 2 branch README](https://github.com/kyzylmonteiro/reddit-foundthepost/blob/set2-broad-keyword-search/data/set2_broad_keyword_search/README.md)
-   for the broad-search runs and their commands.
-5. [`data/set3_arctic_keyword_search/README.md`](data/set3_arctic_keyword_search/README.md)
-   for the historical post-only dataset, keyword rationale, schema, counts, and
-   [database download](https://github.com/kyzylmonteiro/reddit-foundthepost/releases/tag/set3-arctic-2026-09-20).
-6. [`BROAD_REDDIT_SEARCH.md`](BROAD_REDDIT_SEARCH.md) for the search collector,
-   output tables, and join keys.
-7. [`ANNOTATION_GUIDE.md`](ANNOTATION_GUIDE.md) if you are preparing or using
-   the human annotation sheet.
-8. [`REPRODUCIBILITY.md`](REPRODUCIBILITY.md) only when rerunning the
-   `r/foundthepost` collection or checking exact collection commands.
-
-You should not need to open every script to understand the data. The scripts
-are here for reproducibility; the per-dataset README files and manifests are
-the main documentation for analysis.
-
-## What Is In This Repo
-
-- **Set 1**: a tracked `r/foundthepost` snapshot with 80 public subreddit
-  submissions and 66,690 normalized comments from linked source posts.
-- **[Set 2](https://github.com/kyzylmonteiro/reddit-foundthepost/tree/set2-broad-keyword-search)**:
-  a planned Reddit-wide keyword search with separate first-person,
-  third-person observer, and finder runs. Its collector keeps author comments
-  only; the branch documents the collection status.
-- **Set 3**: 2,809,926 matched submissions from 2,533 Arctic Parquet shards
-  (published shards from 2005–2013, 2017–2019, and 2023–February 2026;
-  some months are missing). Posts only,
-  with original title and body, metadata, keyword matches, and extracted Reddit
-  links. The 29,841-phrase CSV is tracked here; the 8.3 GiB SQLite database is
-  [downloadable as a compressed release asset](https://github.com/kyzylmonteiro/reddit-foundthepost/releases/tag/set3-arctic-2026-09-20).
-- **Keyword sets**: 33,344 search phrases organized by threat model, converted
-  from the source workbook and extended with generated third-person variants.
-- Python collection scripts for Sets 1 and 2; Set 3's search method and
-  database schema are documented in its README.
-
-## What Is Local Only
-
-The [Set 2 branch](https://github.com/kyzylmonteiro/reddit-foundthepost/tree/set2-broad-keyword-search)
-documents planned searches; no Set 2 result tables are tracked here. Its
-collector ignores large checkpoints and raw search records by default.
-
-An earlier exploratory scrape lived at
-`data/broad_identity_search/20260528_broad_search_results/` and is not part of
-this clone. Its annotation sheet, `review_posts_for_annotation.csv`, was
-produced outside the repo; no script in the repo generates it. See
-[`ANNOTATION_GUIDE.md`](ANNOTATION_GUIDE.md).
-
-If you are receiving this repo with a Box link, use the Box file as the exact
-dataset for annotation. Rerunning a search reproduces the collection method and
-output schema, but Reddit search/results can change, so a fresh run should be
-treated as a comparable new scrape rather than an exact copy of the Box upload.
-
-## Reproduce
-
-For [Set 2's Reddit-wide keyword search](https://github.com/kyzylmonteiro/reddit-foundthepost/tree/set2-broad-keyword-search),
-see its [branch README](https://github.com/kyzylmonteiro/reddit-foundthepost/blob/set2-broad-keyword-search/data/set2_broad_keyword_search/README.md)
-for the three run commands.
-
-Set 1, the `r/foundthepost` collection:
+The database is a GitHub release asset because the uncompressed SQLite file is
+8,863,924,224 bytes. Its compressed archive is 1,992,017,167 bytes. Download
+and decompress it with [Zstandard](https://github.com/facebook/zstd):
 
 ```bash
-python3 scripts/run_full_collection.py
+curl -L -o arctic_keyword_matches.sqlite.zst \
+  https://github.com/kyzylmonteiro/reddit-foundthepost/releases/download/set3-arctic-2026-09-20/arctic_keyword_matches.sqlite.zst
+shasum -a 256 arctic_keyword_matches.sqlite.zst
+zstd -d arctic_keyword_matches.sqlite.zst -o arctic_keyword_matches.sqlite
+sqlite3 arctic_keyword_matches.sqlite 'PRAGMA integrity_check;'
 ```
 
-See `REPRODUCIBILITY.md` for the two-step commands, resume behavior, and live
-data caveats. Note this path currently fails against Reddit's 403 on anonymous
-requests.
+The expected archive SHA-256 is
+`929546f53a38242bf954742aa9c00e9c412c8ad2b690496241c0a7d2c61bc280`.
+Allow about 11 GB of free disk space for both archive and database.
 
-## Current Snapshot
+## Coverage and results
 
-Set 1's enriched snapshot:
+Set 3 searched 1,232,412,787 submissions in 2,533 Parquet shards published by
+`Dk587/arctic` at collection time. The database contains 2,809,926 unique
+matched posts, 2,824,422 post-to-keyword match records, and 2,659,819 extracted
+Reddit-link records.
 
-`data/set1_foundthepost_subreddit/20260527_foundthepost_snapshot/`
+| Source year | Matched posts |
+| ---: | ---: |
+| 2005 | 0 |
+| 2006 | 15 |
+| 2007 | 50 |
+| 2008 | 170 |
+| 2009 | 1,815 |
+| 2010 | 8,361 |
+| 2011 | 33,985 |
+| 2012 | 88,139 |
+| 2013 | 91,184 |
+| 2017 | 18,537 |
+| 2018 | 21,288 |
+| 2019 | 41,419 |
+| 2023 | 81,326 |
+| 2024 | 1,101,148 |
+| 2025 | 1,143,130 |
+| 2026 through February | 179,359 |
 
-It contains 80 public submissions collected from Reddit's unauthenticated
-`new.json` listing on 2026-05-27, back when that endpoint was open. Reddit
-returned one page with no pagination token, so this appears to cover the
-currently visible subreddit submission history.
+Only some months were available for 2013, 2017–2019, and 2023. Submission
+shards for 2014–2016 and 2020–2022 had not been published in this Hugging Face
+dataset, so those years have no Set 3 results. Its dataset card lists those
+months under [“Remaining months”](https://huggingface.co/datasets/Dk587/arctic#remaining-months-280-pairs),
+which describes work awaiting conversion and upload. Check the current
+[`data/submissions` file tree](https://huggingface.co/datasets/Dk587/arctic/tree/main/data/submissions)
+for newly published shards.
 
-Source-post comments were also collected for 81 unique linked source threads.
-The public Reddit JSON endpoints returned comments for 80 of those threads,
-yielding 66,690 normalized source-comment records.
+## What each matched post retains
 
-## Files
+The `posts` table stores the Reddit ID, timestamp, subreddit, title, body
+(`selftext`), flair, score, comment count, NSFW flag, submitted URL, permalink,
+and source shard. A link post can have an empty body. The
+`post_keyword_matches` table records each matching phrase and whether it
+appeared in the title, body, or both. The `post_links` table records Reddit URLs
+found in the title, body, or submitted URL, including possible references to
+another post. `processed_files` records the source shards searched.
 
-Scripts:
+The [dataset README](data/set3_arctic_keyword_search/README.md#database-tables)
+describes all tables and gives example joins and queries.
 
-- `scripts/reddit_client.py` is the shared OAuth Reddit client used by every
-  collector.
-- `scripts/check_reddit_auth.py` verifies credentials and reports rate limits.
-- `scripts/collect_reddit_posts.py` collects public submissions and writes a
-  date-stamped snapshot under `data/`. Set 1 only.
-- `scripts/collect_source_comments.py` collects comments from source Reddit
-  posts linked by the normalized post table. Set 1 only.
-- `scripts/run_full_collection.py` runs both collection steps and writes a
-  `collection_run_manifest.json` with commands and parameters.
-- `scripts/search_identity_discovery.py` searches Reddit-wide for identity
-  discovery keywords and writes post/comment CSVs. It is the
-  [Set 2](https://github.com/kyzylmonteiro/reddit-foundthepost/tree/set2-broad-keyword-search)
-  collector and supports OAuth,
-  keyword CSVs via `--query-csv`, and `--author-comments-only`.
-- `scripts/xlsx_to_csv.py` converts an `.xlsx` workbook to one CSV per sheet.
-- `scripts/build_third_person_queries.py` generates the third-person keyword
-  sets from the first-person workbook.
+## Keywords and search method
 
-Set 1 snapshot files:
+The starting catalog was a supplied CSV with 7,886 unique first-person phrases
+organized by threat model. We added the 19 phrases provided with the request,
+85 coverage phrases for account tracing, screenshots, throwaways, recognition,
+confrontation, and related cases, then generated neutral, feminine, and masculine
+third-person variants. After case-insensitive deduplication, the final CSV has
+7,989 first-person and 21,852 third-person phrases.
 
-- `posts_normalized.csv` is the analysis-friendly table.
-- `posts_normalized.jsonl` is the same normalized data as newline-delimited
-  JSON.
-- `posts_raw.jsonl` keeps the raw listing child payloads returned by Reddit.
-- `pages.json` records pagination metadata.
-- `manifest.json` records collection timing, counts, and caveats.
-- `source_comments/` contains flattened comments from linked source posts.
+Every submission's title and body were searched separately after Unicode NFKC
+normalization, case folding, and whitespace collapsing. Matching used literal
+substring search with an Aho–Corasick automaton. Multiple matches on one post
+were retained. This was a basic keyword search, with no semantic classifier or
+manual reading of posts during selection. The source Parquet files were handled
+one shard at a time and removed locally after successful processing.
 
-## Broad Search Artifacts
+These are **candidate posts**, not verified accounts of discovery or harm.
+Broad phrases can produce false positives; implicit accounts, other languages,
+and unlisted wording can be missed. A Reddit link in a post does not by itself
+prove that the post is a repost or quotation. Use `posts` for unique-post counts
+and `post_keyword_matches` for phrase-level counts.
 
-`scripts/search_identity_discovery.py` writes one timestamped folder per run.
-Use `review_posts.csv` for Google Sheets/manual coding: one row per candidate
-post, compact text excerpts, links, matched keywords, scores, and blank review
-columns. `posts.csv` keeps the richer post metadata and rehydration IDs.
-`comments.csv` contains every collected comment; `author_comments.csv` is the
-OP-only subset for fast follow-up. Under `--author-comments-only` both files
-hold only the post author's comments, and `manifest.json` records
-`comments_scope: author_only`. `manifest.json`, `search_pages.json`, and
-`comment_fetch_log.jsonl` explain exactly how the run was made and what Reddit
-returned. If a local broad scrape is interrupted, rerun
-`python3 scripts/search_identity_discovery.py --resume`; the script uses
-`run_state.json` and `comment_checkpoints/` to skip work it already finished.
+## Earlier collections
 
-## Notes
+- [Set 1](data/set1_foundthepost_subreddit/20260527_foundthepost_snapshot/README.md)
+  is a snapshot of `r/foundthepost`: 80 subreddit submissions and 66,690
+  normalized comments from linked source posts.
+- The [Set 2 broad-search branch](https://github.com/kyzylmonteiro/reddit-foundthepost/tree/set2-broad-keyword-search)
+  documents a Reddit-wide search design with first-person, observer, and finder
+  voices. Its [README](https://github.com/kyzylmonteiro/reddit-foundthepost/blob/set2-broad-keyword-search/data/set2_broad_keyword_search/README.md)
+  records the planned runs and OAuth requirement. No Set 2 result tables are
+  tracked in this repository.
+- The [Set 3 branch](https://github.com/kyzylmonteiro/reddit-foundthepost/tree/set3-arctic-keyword-search)
+  preserves the initial Arctic publication. `main` is the cumulative branch.
 
-The normalized post table includes both the `r/foundthepost` submission fields
-and, when Reddit exposed it, source post fields from `crosspost_parent_list`.
-Source comments are stored separately so post-level and comment-level analysis
-can be joined by `source_id` or `foundthepost_ids`. Deleted, removed, private,
-or otherwise inaccessible content is not recovered.
+The older collection scripts and documentation remain available for
+reproducibility. They do not generate the Set 3 database; its documented search
+method and published database are the reference for Set 3 analysis.
