@@ -1,8 +1,8 @@
 # Reproducibility
 
-This document covers set 1, the `r/foundthepost` collection. For set 2, the
-Reddit-wide keyword search, see
-[`data/set2_broad_keyword_search/README.md`](data/set2_broad_keyword_search/README.md).
+This document covers set 1, the `r/foundthepost` collection. For
+[Set 2's Reddit-wide keyword search](https://github.com/kyzylmonteiro/reddit-foundthepost/tree/set2-broad-keyword-search),
+see the [Set 2 branch README](https://github.com/kyzylmonteiro/reddit-foundthepost/blob/set2-broad-keyword-search/data/set2_broad_keyword_search/README.md).
 
 > **OAuth credentials are required.** Reddit answers HTTP 403 Blocked for
 > unauthenticated requests to its `.json` endpoints. Export `REDDIT_CLIENT_ID`

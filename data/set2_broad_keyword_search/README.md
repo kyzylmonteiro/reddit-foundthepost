@@ -1,4 +1,4 @@
-# Set 2 — Broad Reddit Keyword Search
+# [Set 2 — Broad Reddit Keyword Search](https://github.com/kyzylmonteiro/reddit-foundthepost/tree/set2-broad-keyword-search)
 
 Reddit-wide search driven by the keyword workbook in
 `data/keyword_search_combos/`. Not subreddit-specific: this searches all of

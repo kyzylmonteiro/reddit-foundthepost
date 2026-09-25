@@ -168,9 +168,10 @@ Important rehydration/provenance columns:
 
 ## Current Runs
 
-Set 2 runs live under `data/set2_broad_keyword_search/`, one directory per
-voice, each holding a dated `YYYYMMDD_broad_search_results/` folder. See
-[`data/set2_broad_keyword_search/README.md`](data/set2_broad_keyword_search/README.md)
+The [Set 2 branch](https://github.com/kyzylmonteiro/reddit-foundthepost/tree/set2-broad-keyword-search)
+plans live runs under `data/set2_broad_keyword_search/`, one directory per
+voice, each holding a dated `YYYYMMDD_broad_search_results/` folder. See its
+[README](https://github.com/kyzylmonteiro/reddit-foundthepost/blob/set2-broad-keyword-search/data/set2_broad_keyword_search/README.md)
 for the exact commands.
 
 An earlier exploratory scrape at

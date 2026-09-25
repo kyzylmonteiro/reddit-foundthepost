@@ -33,9 +33,16 @@ returns.
 | Set | What | Status |
 | --- | --- | --- |
 | [set 1](data/set1_foundthepost_subreddit/) | `r/foundthepost` subreddit snapshot | collected |
-| [set 2](data/set2_broad_keyword_search/) | Reddit-wide keyword search, 3 voices | pending credentials |
+| [set 2](https://github.com/kyzylmonteiro/reddit-foundthepost/tree/set2-broad-keyword-search) | Reddit-wide keyword search, 3 voices | pending credentials |
 | [set 3](data/set3_arctic_keyword_search/) | Historical Arctic submissions, first- and third-person literal keyword search | collected; database in release |
 | [keywords](data/keyword_search_combos/) | 33,344 search phrases by threat model | ready |
+
+`main` is the cumulative project branch with Sets 1–3. The
+[Set 2 branch](https://github.com/kyzylmonteiro/reddit-foundthepost/tree/set2-broad-keyword-search)
+preserves the project before Set 3 was added; the
+[Set 3 branch](https://github.com/kyzylmonteiro/reddit-foundthepost/tree/set3-arctic-keyword-search)
+preserves the initial Arctic publication. Set 3's SQLite database is hosted as
+a release asset, linked from its dataset README.
 
 ## Start Here
 
@@ -44,7 +51,7 @@ returns.
    for the tracked `r/foundthepost` snapshot and its analysis-ready files.
 3. [`data/keyword_search_combos/README.md`](data/keyword_search_combos/README.md)
    for the keyword sets and what each CSV is for.
-4. [`data/set2_broad_keyword_search/README.md`](data/set2_broad_keyword_search/README.md)
+4. [Set 2 branch README](https://github.com/kyzylmonteiro/reddit-foundthepost/blob/set2-broad-keyword-search/data/set2_broad_keyword_search/README.md)
    for the broad-search runs and their commands.
 5. [`data/set3_arctic_keyword_search/README.md`](data/set3_arctic_keyword_search/README.md)
    for the historical post-only dataset, keyword rationale, schema, counts, and
@@ -64,9 +71,10 @@ the main documentation for analysis.
 
 - **Set 1**: a tracked `r/foundthepost` snapshot with 80 public subreddit
   submissions and 66,690 normalized comments from linked source posts.
-- **Set 2**: a Reddit-wide keyword search across all of Reddit, run separately
-  for first-person, third-person observer, and finder voices. Author comments
-  only.
+- **[Set 2](https://github.com/kyzylmonteiro/reddit-foundthepost/tree/set2-broad-keyword-search)**:
+  a planned Reddit-wide keyword search with separate first-person,
+  third-person observer, and finder runs. Its collector keeps author comments
+  only; the branch documents the collection status.
 - **Set 3**: 2,809,926 matched submissions from 2,533 Arctic Parquet shards
   (published shards from 2005–2013, 2017–2019, and 2023–February 2026;
   some months are missing). Posts only,
@@ -75,12 +83,14 @@ the main documentation for analysis.
   [downloadable as a compressed release asset](https://github.com/kyzylmonteiro/reddit-foundthepost/releases/tag/set3-arctic-2026-09-20).
 - **Keyword sets**: 33,344 search phrases organized by threat model, converted
   from the source workbook and extended with generated third-person variants.
-- Reproducible Python scripts for all of the above.
+- Python collection scripts for Sets 1 and 2; Set 3's search method and
+  database schema are documented in its README.
 
 ## What Is Local Only
 
-Broad-search output is large, so per-post comment checkpoints and saved raw
-search records are ignored by git. The analysis tables are tracked.
+The [Set 2 branch](https://github.com/kyzylmonteiro/reddit-foundthepost/tree/set2-broad-keyword-search)
+documents planned searches; no Set 2 result tables are tracked here. Its
+collector ignores large checkpoints and raw search records by default.
 
 An earlier exploratory scrape lived at
 `data/broad_identity_search/20260528_broad_search_results/` and is not part of
@@ -95,8 +105,8 @@ treated as a comparable new scrape rather than an exact copy of the Box upload.
 
 ## Reproduce
 
-Set 2, the Reddit-wide keyword search — see
-[`data/set2_broad_keyword_search/README.md`](data/set2_broad_keyword_search/README.md)
+For [Set 2's Reddit-wide keyword search](https://github.com/kyzylmonteiro/reddit-foundthepost/tree/set2-broad-keyword-search),
+see its [branch README](https://github.com/kyzylmonteiro/reddit-foundthepost/blob/set2-broad-keyword-search/data/set2_broad_keyword_search/README.md)
 for the three run commands.
 
 Set 1, the `r/foundthepost` collection:
@@ -138,7 +148,9 @@ Scripts:
 - `scripts/run_full_collection.py` runs both collection steps and writes a
   `collection_run_manifest.json` with commands and parameters.
 - `scripts/search_identity_discovery.py` searches Reddit-wide for identity
-  discovery keywords and writes post/comment CSVs. Set 2. Supports OAuth,
+  discovery keywords and writes post/comment CSVs. It is the
+  [Set 2](https://github.com/kyzylmonteiro/reddit-foundthepost/tree/set2-broad-keyword-search)
+  collector and supports OAuth,
   keyword CSVs via `--query-csv`, and `--author-comments-only`.
 - `scripts/xlsx_to_csv.py` converts an `.xlsx` workbook to one CSV per sheet.
 - `scripts/build_third_person_queries.py` generates the third-person keyword

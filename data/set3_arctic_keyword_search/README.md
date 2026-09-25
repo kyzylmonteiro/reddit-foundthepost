@@ -208,13 +208,14 @@ JOIN post_links AS l USING (post_id);
 - Counts reflect the contents of the source dataset at the time of collection and the
   available source years listed above.
 
-## Relationship to Set 2
+## Relationship to [Set 2](https://github.com/kyzylmonteiro/reddit-foundthepost/tree/set2-broad-keyword-search)
 
-Set 2 searches live Reddit with three keyword perspectives and collects author
-comments. Set 3 searches the historical Arctic submission corpus only: it stores
-posts, not comments, and its first-/third-person catalog does not include Set 2's
-finder-voice phrases. The two collection methods and their available time ranges
-differ, so Set 2's retrieved posts cannot be assumed to be a subset of Set 3's
+Set 2's planned collector searches live Reddit with three keyword perspectives
+and collects author comments. Set 3 searches the historical Arctic submission
+corpus only: it stores posts, not comments, and its first-/third-person catalog
+does not include Set 2's finder-voice phrases. The two collection methods and
+their available time ranges differ, so Set 2's retrieved posts cannot be
+assumed to be a subset of Set 3's
 without a post-ID comparison of actual Set 2 output. Their data schemas also differ;
 use Reddit post IDs to join or deduplicate across sets.
 

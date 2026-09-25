@@ -2,19 +2,22 @@
 
 Search-phrase sets for identity-discovery collection, organized by threat model.
 These are search-design inputs, not collected Reddit data.
+They belong to the [Set 2 broad-search branch](https://github.com/kyzylmonteiro/reddit-foundthepost/tree/set2-broad-keyword-search).
 
 ## TL;DR — What Each CSV Is And How It Is Used
 
 | CSV | Rows | Voice | Used for |
 | --- | ---: | --- | --- |
-| `general.csv` | 69 | 1st person | set2 `first_person` run |
-| `institutional_threats.csv` | 1,248 | 1st person | set2 `first_person` run |
-| `organizational_threats.csv` | 2,112 | 1st person | set2 `first_person` run |
-| `ambiguous_others.csv` | 233 | 1st person | set2 `first_person` run |
-| `interpersonal.csv` | 4,224 | 1st person | set2 `first_person` run |
+| `general.csv` | 69 | 1st person | [Set 2][set2-branch] `first_person` run |
+| `institutional_threats.csv` | 1,248 | 1st person | [Set 2][set2-branch] `first_person` run |
+| `organizational_threats.csv` | 2,112 | 1st person | [Set 2][set2-branch] `first_person` run |
+| `ambiguous_others.csv` | 233 | 1st person | [Set 2][set2-branch] `first_person` run |
+| `interpersonal.csv` | 4,224 | 1st person | [Set 2][set2-branch] `first_person` run |
 | `all_first_person_searches.csv` | 7,886 | 1st person | reference only — flat list, no provenance columns |
-| `third_person_observer.csv` | 21,564 | 3rd person | set2 `third_person_observer` run |
-| `third_person_finder.csv` | 3,894 | finder | set2 `third_person_finder` run |
+| `third_person_observer.csv` | 21,564 | 3rd person | [Set 2][set2-branch] `third_person_observer` run |
+| `third_person_finder.csv` | 3,894 | finder | [Set 2][set2-branch] `third_person_finder` run |
+
+[set2-branch]: https://github.com/kyzylmonteiro/reddit-foundthepost/tree/set2-broad-keyword-search
 
 The five category CSVs drive the first-person run rather than
 `all_first_person_searches.csv`, because only they carry the
