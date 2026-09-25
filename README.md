@@ -68,7 +68,8 @@ the main documentation for analysis.
   for first-person, third-person observer, and finder voices. Author comments
   only.
 - **Set 3**: 2,809,926 matched submissions from 2,533 Arctic Parquet shards
-  (available years 2005–2013, 2017–2019, 2023–February 2026). Posts only,
+  (published shards from 2005–2013, 2017–2019, and 2023–February 2026;
+  some months are missing). Posts only,
   with original title and body, metadata, keyword matches, and extracted Reddit
   links. The 29,841-phrase CSV is tracked here; the 8.3 GiB SQLite database is
   [downloadable as a compressed release asset](https://github.com/kyzylmonteiro/reddit-foundthepost/releases/tag/set3-arctic-2026-09-20).

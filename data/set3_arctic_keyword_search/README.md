@@ -29,9 +29,16 @@ Allow about 11 GB of free space to hold both the archive and decompressed databa
 ## Coverage and totals
 
 The source contained 2,533 Parquet shards and 1,232,412,787 submission rows.
-All available submission shards were searched. The available years are 2005–2013,
-2017–2019, 2023–2025, and January–February 2026. The source dataset did not contain
-submission shards for 2014–2016 or 2020–2022.
+All submission shards published in `Dk587/arctic` at collection time were searched.
+The published shards covered 2005–2013, 2017–2019, 2023–2025, and
+January–February 2026, with only some months available in 2013, 2017–2019,
+and 2023. The 2014–2016 and 2020–2022 submission shards had not been published
+there, so Set 3 has no results for those years. The dataset card's
+[“Remaining months” table](https://huggingface.co/datasets/Dk587/arctic#remaining-months-280-pairs)
+lists source archive months awaiting conversion/upload; it is not a list of
+downloadable Parquet files. To assess coverage, check the dataset's current
+[`data/submissions` file tree](https://huggingface.co/datasets/Dk587/arctic/tree/main/data/submissions)
+or its committed-month [`stats.csv`](https://huggingface.co/datasets/Dk587/arctic/blob/main/stats.csv).
 
 The final database contains:
 
