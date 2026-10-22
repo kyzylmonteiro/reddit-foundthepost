@@ -12,6 +12,8 @@ literal keyword search.
   keyword matches, and extracted Reddit links. The 1,992,017,167-byte archive is a
   GitHub release asset, not a Git-tracked file; the uncompressed database is
   8,863,924,224 bytes.
+- [Subreddit count catalog](subreddits/README.md) — all subreddit names in
+  matched posts, their post counts, and empty description cells for a later pass.
 
 Download and decompress with [Zstandard](https://github.com/facebook/zstd):
 

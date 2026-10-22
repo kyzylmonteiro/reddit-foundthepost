@@ -18,6 +18,7 @@ work remains in the repository; see [Earlier collections](#earlier-collections).
 | --- | --- |
 | [Keyword CSV](data/set3_arctic_keyword_search/keywords_all_perspectives.csv) | 29,841 first- and third-person search phrases, with perspective and provenance |
 | [SQLite database download](https://github.com/kyzylmonteiro/reddit-foundthepost/releases/download/set3-arctic-2026-09-20/arctic_keyword_matches.sqlite.zst) | Matched posts, title and body, metadata, keyword matches, extracted Reddit links, and source-shard audit |
+| [Subreddit count catalog](data/set3_arctic_keyword_search/subreddits/README.md) | Every subreddit name in the matched posts, its post count, and a blank description column for later enrichment |
 
 The database is a GitHub release asset because the uncompressed SQLite file is
 8,863,924,224 bytes. Its compressed archive is 1,992,017,167 bytes. Download
