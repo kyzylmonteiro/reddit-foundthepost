@@ -14,6 +14,9 @@ literal keyword search.
   8,863,924,224 bytes.
 - [Subreddit count catalog](subreddits/README.md) — all subreddit names in
   matched posts, their post counts, and empty description cells for a later pass.
+- [Subreddit classification](subreddits/classified/README.md) — name-based
+  KEEP, REVIEW, and REMOVE decisions, with user profiles separated. Live
+  banned/private status is still unverified.
 
 Download and decompress with [Zstandard](https://github.com/facebook/zstd):
 

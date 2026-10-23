@@ -2,6 +2,12 @@
 
 Every subreddit name stored in the [Set 3 matched-post database](../README.md) is listed in the linked Markdown tables below. Counts are unique matched posts in this dataset, not the total number of posts in each subreddit. Names are grouped case insensitively; the most common stored spelling is displayed. Descriptions are intentionally blank until a later metadata collection pass. No Reddit API requests were made.
 
+The [name-based classification tables](classified/README.md) apply the
+requested REMOVE, KEEP, and REVIEW rules without using post-count thresholds.
+Entries beginning with `u_` are separated as profile pages. Access and
+descriptions are not verified yet, so banned/private communities are not
+identified in this pass.
+
 | Measure | Count |
 | --- | ---: |
 | Matched posts in Set 3 | 2,809,926 |
