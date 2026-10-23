@@ -2,11 +2,16 @@
 
 Every subreddit name stored in the [Set 3 matched-post database](../README.md) is listed in the linked Markdown tables below. Counts are unique matched posts in this dataset, not the total number of posts in each subreddit. Names are grouped case insensitively; the most common stored spelling is displayed. Descriptions are intentionally blank until a later metadata collection pass. No Reddit API requests were made.
 
-The [name-based classification tables](classified/README.md) apply the
-requested REMOVE, KEEP, and REVIEW rules without using post-count thresholds.
-Entries beginning with `u_` are separated as profile pages. Access and
-descriptions are not verified yet, so banned/private communities are not
-identified in this pass.
+The [classification tables](classified/README.md) include every named entry, including communities with only one matched post. **No minimum matched-post count or top-100 cutoff is applied.** Counts are for context only.
+
+## Filtering conditions
+
+- **REMOVE:** Clear roleplaying names (`roleplay`, `roleplaying`, or contextual `RP`) and names clearly indicating minors (`teen`, `teens`, `teenagers`, or `under18`). Banned, private, or otherwise inaccessible communities should also be removed **once their status is verified**; access status has not yet been checked. Gaming-related name combinations are sent to REVIEW rather than automatically removed.
+- **REVIEW, not automatic removal:** Names suggesting memes, sexual/NSFW content, fiction/stories, or ambiguous teen/RP meanings. Descriptions are not available yet to confirm these categories.
+- **KEEP:** Other subreddit names remain eligible. Gaming communities are not removed merely for being about games. KEEP is provisional until access status and descriptions can be checked.
+- **Separate profiles:** Entries beginning with `u_` represent user profiles, not subreddits, and are preserved outside subreddit filtering.
+
+Name matching is case-insensitive and uses boundaries for short terms to limit false positives. Each classification row records its category, decision, and reason. No post titles or bodies are read.
 
 | Measure | Count |
 | --- | ---: |
@@ -14,9 +19,6 @@ identified in this pass.
 | Posts with a subreddit name | 2,809,918 |
 | Posts without a subreddit name | 8 |
 | Distinct subreddit names | 141,948 |
-| Matched posts in the top 100 subreddits | 878,673 |
-| Subreddits with at least 100 matched posts | 3,668 |
-| Matched posts in those subreddits | 2,051,748 |
 | Subreddits with one matched post | 77,968 |
 
 ## All subreddits
