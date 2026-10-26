@@ -6,13 +6,11 @@ from __future__ import annotations
 import argparse
 import math
 import re
-from collections import Counter
+import sqlite3
+from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import quote
-
-from build_subreddit_catalog import read_counts
-
 
 PAGE_SIZE = 2_500
 
@@ -34,6 +32,35 @@ SEXUAL = re.compile(
 )
 STORY = re.compile(r"stories|fiction|fanfic|writing|nosleep|creepypasta", re.IGNORECASE)
 STORY_TOKEN = re.compile(r"(?:^|[_-])story(?:$|[_-])|^story|story$", re.IGNORECASE)
+
+
+def read_counts(database: Path) -> tuple[list[tuple[str, int]], int, int]:
+    connection = sqlite3.connect(database.resolve().as_uri() + "?mode=ro", uri=True)
+    try:
+        total_posts = connection.execute("SELECT COUNT(*) FROM posts").fetchone()[0]
+        unnamed_posts = connection.execute(
+            "SELECT COUNT(*) FROM posts WHERE subreddit IS NULL OR trim(subreddit) = ''"
+        ).fetchone()[0]
+        variants = connection.execute(
+            "SELECT trim(subreddit), COUNT(*) FROM posts "
+            "WHERE subreddit IS NOT NULL AND trim(subreddit) <> '' "
+            "GROUP BY trim(subreddit)"
+        ).fetchall()
+    finally:
+        connection.close()
+
+    grouped: dict[str, list[tuple[str, int]]] = defaultdict(list)
+    for label, count in variants:
+        grouped[label.casefold()].append((label, count))
+
+    counts = []
+    for labels in grouped.values():
+        display = sorted(labels, key=lambda item: (-item[1], item[0].casefold(), item[0]))[0][0]
+        counts.append((display, sum(count for _, count in labels)))
+    counts.sort(key=lambda item: (-item[1], item[0].casefold(), item[0]))
+
+    assert sum(count for _, count in counts) + unnamed_posts == total_posts
+    return counts, unnamed_posts, total_posts
 
 
 @dataclass(frozen=True)
@@ -72,11 +99,11 @@ def classify(name: str, posts: int) -> Row:
 
     review: list[tuple[str, str]] = []
     if teen_ambiguous and not minor:
-        review.append(("TEEN_AMBIGUOUS", "Teen substring needs context; not auto-removed"))
+        review.append(("TEEN_AMBIGUOUS", "Teen substring is ambiguous"))
     if roleplay_word and gaming:
         review.append(("ROLEPLAY_GAMING_AMBIGUOUS", "Roleplay plus gaming; gaming exception"))
     elif rp_token and not ((RP_CONTEXT.search(name) or sexual) and not gaming):
-        review.append(("RP_AMBIGUOUS", "RP acronym needs description to confirm roleplay"))
+        review.append(("RP_AMBIGUOUS", "RP acronym is ambiguous"))
     if MEME.search(name):
         review.append(("MEME_NAME_MATCH", "Meme or shitpost name match"))
     if sexual:
@@ -94,7 +121,7 @@ def classify(name: str, posts: int) -> Row:
         )
     if gaming:
         return Row(name, posts, "GAMING_NAME_MATCH", "KEEP", "Gaming name match; no exclusion rule", "keep")
-    return Row(name, posts, "NO_NAME_RULE_MATCH", "KEEP", "No name rule matched; access unverified", "keep")
+    return Row(name, posts, "NO_NAME_RULE_MATCH", "KEEP", "No name rule matched", "keep")
 
 
 def markdown_row(row: Row) -> str:
@@ -105,8 +132,7 @@ def markdown_row(row: Row) -> str:
         url = "https://www.reddit.com/r/" + quote(row.name, safe="") + "/"
     return (
         f"| [r/{label}]({url}) | {row.posts:,} | {row.category} | "
-        f"{row.decision} | {row.reason} | "
-        f"{'NOT_APPLICABLE' if row.group == 'profiles' else 'UNVERIFIED'} |  |\n"
+        f"{row.decision} | {row.reason} |\n"
     )
 
 
@@ -119,10 +145,9 @@ def write_pages(output: Path, group: str, rows: list[Row]) -> int:
         end = min(page * PAGE_SIZE, len(rows))
         with (directory / f"{page:04d}.md").open("w", encoding="utf-8", newline="\n") as file:
             file.write(f"# {group.title()}: entries {start + 1:,}–{end:,}\n\n")
-            file.write("Decisions are based on subreddit names only. ")
-            file.write("Live access and descriptions have not been checked.\n\n")
-            file.write("| Entry | Matched posts | Classification | Decision | Reason | Access status | Description |\n")
-            file.write("| --- | ---: | --- | --- | --- | --- | --- |\n")
+            file.write("Decisions are based on subreddit names only.\n\n")
+            file.write("| Entry | Matched posts | Classification | Decision | Reason |\n")
+            file.write("| --- | ---: | --- | --- | --- |\n")
             for row in rows[start:end]:
                 file.write(markdown_row(row))
     return pages
@@ -130,60 +155,54 @@ def write_pages(output: Path, group: str, rows: list[Row]) -> int:
 
 def write_index(output: Path, groups: dict[str, list[Row]], unnamed: int, total: int) -> None:
     output.mkdir(parents=True, exist_ok=True)
-    page_counts = {group: write_pages(output, group, rows) for group, rows in groups.items()}
+    classified = output / "classified"
+    page_counts = {group: write_pages(classified, group, rows) for group, rows in groups.items()}
     all_rows = [row for rows in groups.values() for row in rows]
     assert sum(row.posts for row in all_rows) + unnamed == total
     assert len({row.name.casefold() for row in all_rows}) == len(all_rows)
-    decisions = Counter(row.decision for row in all_rows if row.group != "profiles")
-
     with (output / "README.md").open("w", encoding="utf-8", newline="\n") as file:
-        file.write("# Set 3 subreddit classification\n\n")
-        file.write("This is a **name-based first pass** over the ")
-        file.write("[full Set 3 subreddit count catalog](../README.md). ")
-        file.write("Every named entry has a classification, decision, and reason. ")
-        file.write("No post-count threshold was used. Post counts are shown only for context.\n\n")
-        file.write("**Access and descriptions are unverified.** No Reddit API credentials were ")
-        file.write("available, and the Set 3 post database has no subreddit descriptions. ")
-        file.write("Banned, private, deleted, or otherwise inaccessible communities cannot ")
-        file.write("be reliably identified here. KEEP therefore means only that no name-based ")
-        file.write("exclusion rule matched; it is not final access verification. ")
-        file.write("No Reddit API calls or post-content reads were made.\n\n")
+        file.write("# Set 3 subreddit catalog\n\n")
+        file.write("Every named entry in the [Set 3 matched-post database](../README.md) ")
+        file.write("is listed once, with its matched-post count, name-based category, ")
+        file.write("decision, and reason. Counts describe the matched posts; they do ")
+        file.write("not determine the decision.\n\n")
+        file.write("## Name-based filtering\n\n")
+        file.write("- **REMOVE:** Names clearly indicating roleplay or minors.\n")
+        file.write("- **REVIEW:** Names suggesting memes, sexual/NSFW content, fiction or ")
+        file.write("stories, or ambiguous teen/RP meanings. Gaming-related roleplay ")
+        file.write("names are reviewed rather than automatically removed.\n")
+        file.write("- **User profiles:** `u_` entries are listed separately and are not ")
+        file.write("subject to subreddit rules.\n\n")
+        file.write("Other subreddit names remain in the catalog as unflagged entries; ")
+        file.write("gaming alone is not an exclusion. Matching is case-insensitive ")
+        file.write("with token boundaries for short terms.\n\n")
         file.write("| Group | Entries | Matched posts |\n| --- | ---: | ---: |\n")
-        for group in ("keep", "review", "remove", "profiles"):
+        for group in ("review", "remove", "profiles", "keep"):
             rows = groups[group]
-            file.write(f"| {group.title()} | {len(rows):,} | {sum(row.posts for row in rows):,} |\n")
+            label = "Other subreddit names" if group == "keep" else group.title()
+            file.write(f"| {label} | {len(rows):,} | {sum(row.posts for row in rows):,} |\n")
         file.write(f"| No subreddit name | — | {unnamed:,} |\n")
         file.write(f"| **Total** | **{len(all_rows):,}** | **{total:,}** |\n\n")
-        file.write(f"Among actual subreddit labels: {decisions['KEEP']:,} KEEP, ")
-        file.write(f"{decisions['REVIEW']:,} REVIEW, and {decisions['REMOVE']:,} REMOVE. ")
-        file.write("User profile entries beginning with `u_` are preserved separately.\n\n")
         file.write("## Tables\n\n")
-        for group in ("keep", "review", "remove", "profiles"):
-            file.write(f"### {group.title()}\n\n")
+        for group in ("review", "remove", "profiles", "keep"):
+            label = "Other subreddit names" if group == "keep" else group.title()
+            file.write(f"### {label}\n\n")
             file.write("| Entries | Page |\n| ---: | --- |\n")
             for page in range(1, page_counts[group] + 1):
                 start = (page - 1) * PAGE_SIZE + 1
                 end = min(page * PAGE_SIZE, len(groups[group]))
-                file.write(f"| {start:,}–{end:,} | [{group} {page}]({group}/{page:04d}.md) |\n")
+                link_label = "other" if group == "keep" else group
+                file.write(f"| {start:,}–{end:,} | [{link_label} {page}](classified/{group}/{page:04d}.md) |\n")
             file.write("\n")
-        file.write("## Rules and limits\n\n")
-        file.write("- REMOVE: explicit `roleplay`/`roleplaying` names or `RP` with ")
-        file.write("roleplay context; names starting with `teenager`, an isolated ")
-        file.write("`teen`/`teens` token, or an `under18` token. Gaming combinations ")
-        file.write("go to REVIEW instead of automatic removal.\n")
-        file.write("- REVIEW: names suggesting memes, sexual/NSFW content, fiction/stories, ")
-        file.write("or ambiguous teen/RP meanings. These are flags, not removals.\n")
-        file.write("- KEEP: no name-based exclusion; explicit gaming names remain eligible.\n")
-        file.write("- Profiles: `u_` entries are not treated as subreddits.\n\n")
-        file.write("Name rules use case-insensitive matching and token boundaries for ")
-        file.write("short terms such as `RP` and `teen`. Some true cases will remain ")
-        file.write("undetected until descriptions and access status can be checked. ")
-        file.write("A 404 or 403 alone should not be labeled banned or private without ")
-        file.write("confirming the response and authentication status.\n\n")
         file.write("Regenerate from the Set 3 SQLite database with:\n\n")
         file.write("```bash\npython3 scripts/classify_subreddits.py \\\n")
         file.write("  arctic_keyword_matches.sqlite \\\n")
-        file.write("  --output data/set3_arctic_keyword_search/subreddits/classified\n```\n")
+        file.write("  --output data/set3_arctic_keyword_search/subreddits\n```\n")
+
+    with (classified / "README.md").open("w", encoding="utf-8", newline="\n") as file:
+        file.write("# Set 3 subreddit tables\n\n")
+        file.write("The [subreddit catalog](../README.md) is the main index for ")
+        file.write("these category pages and their filtering rules.\n")
 
 
 def main() -> None:

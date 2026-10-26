@@ -12,11 +12,9 @@ literal keyword search.
   keyword matches, and extracted Reddit links. The 1,992,017,167-byte archive is a
   GitHub release asset, not a Git-tracked file; the uncompressed database is
   8,863,924,224 bytes.
-- [Subreddit count catalog](subreddits/README.md) — all subreddit names in
-  matched posts, their post counts, and empty description cells for a later pass.
-- [Subreddit classification](subreddits/classified/README.md) — name-based
-  KEEP, REVIEW, and REMOVE decisions, with user profiles separated. Live
-  banned/private status is still unverified.
+- [Subreddit catalog](subreddits/README.md) — every named entry with its
+  matched-post count and name-based decision; REVIEW, REMOVE, and user profiles
+  have separate pages.
 
 Download and decompress with [Zstandard](https://github.com/facebook/zstd):
 
